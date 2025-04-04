@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Theater API Testing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Hospital Theater API Testing</h1>
+
+        <!-- Create Booking Test -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Create Booking</h2>
+            <form id="createBookingForm" class="space-y-4">
+                <!-- Patient Details -->
+                <div class="space-y-4 border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Patient Details</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">First Name</label>
+                            <input type="text" id="firstName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="John">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Last Name</label>
+                            <input type="text" id="lastName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="Doe">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
+                            <input type="date" id="dateOfBirth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="1980-01-01">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Gender</label>
+                            <select id="gender" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Phone Contact</label>
+                        <input type="tel" id="phoneContact" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="123-456-7890">
+                    </div>
+                </div>
+
+                <!-- Operation Details -->
+                <div class="space-y-4 border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Operation Details</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Operation Type</label>
+                            <input type="text" id="operationType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="Appendectomy">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Doctor</label>
+                            <select id="doctor" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="Dr. Smith - Surgeon">Dr. Smith - Surgeon</option>
+                                <option value="Dr. Brown - Neurosurgeon">Dr. Brown - Neurosurgeon</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Theater</label>
+                            <select id="theater" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="Theater 1">Theater 1</option>
+                                <option value="Theater 2">Theater 2</option>
+                                <option value="Theater 3">Theater 3</option>
+                                <option value="Theater 4">Theater 4</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Surgery Date</label>
+                            <input type="date" id="surgeryDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="2025-04-01">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Surgery Time</label>
+                            <input type="text" id="surgeryTime" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="10:00">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">AM/PM</label>
+                            <select id="surgeryAmPm" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Duration (hours)</label>
+                            <input type="number" id="durationHours" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="2">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medical Assessment -->
+                <div class="space-y-4 border-b border-gray-200 pb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Medical Assessment</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Anesthesia Review</label>
+                            <select id="anesthesiaReview" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Classification</label>
+                            <select id="classification" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="Minor">Minor</option>
+                                <option value="Major">Major</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Urgency Level</label>
+                        <select id="urgencyLevel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="elective">Elective</option>
+                            <option value="urgent">Urgent</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Diagnosis</label>
+                        <textarea id="diagnosis" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">Acute appendicitis</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Special Requirements</label>
+                        <textarea id="requirements" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">None</textarea>
+                    </div>
+                </div>
+
+                <!-- Administrative -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900">Administrative</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Mode of Payment</label>
+                            <select id="modeOfPayment" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="cash">Cash</option>
+                                <option value="insurance">Insurance</option>
+                                <option value="credit">Credit</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Patient's Location</label>
+                            <input type="text" id="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="Ward 3A">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Create Booking</button>
+            </form>
+            <div id="createBookingResult" class="mt-4 p-4 bg-gray-100 rounded-md hidden">
+                <pre class="whitespace-pre-wrap"></pre>
+            </div>
+        </div>
+
+        <!-- Get Bookings Test -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Get All Bookings</h2>
+            <button id="getBookingsBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Fetch Bookings</button>
+            <div id="getBookingsResult" class="mt-4 p-4 bg-gray-100 rounded-md hidden">
+                <pre class="whitespace-pre-wrap"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://kyjkxvelvvthyvdvpwjj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5amt4dmVsdnZ0aHl2ZHZwd2pqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzNDk0MTgsImV4cCI6MjA1ODkyNTQxOH0.MkvPaW6Cyehrc-CVPwohrnPX1P6nnAeVVR0T3x28da0';
+
+        // Helper function to add hours to a date
+        function addHours(date, hours) {
+            const newDate = new Date(date);
+            newDate.setHours(newDate.getHours() + hours);
+            return newDate;
+        }
+
+        // Helper function to handle API responses
+        async function handleResponse(response) {
+            const contentType = response.headers.get('content-type');
+            if (!response.ok) {
+                let errorMessage;
+                try {
+                    if (contentType && contentType.includes('application/json')) {
+                        const error = await response.json();
+                        errorMessage = JSON.stringify(error, null, 2);
+                    } else {
+                        errorMessage = await response.text();
+                    }
+                } catch (e) {
+                    errorMessage = `HTTP error! status: ${response.status}`;
+                }
+                throw new Error(errorMessage);
+            }
+
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            }
+            return response.text();
+        }
+
+        // Create Booking Form Handler
+        document.getElementById('createBookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const resultDiv = document.getElementById('createBookingResult');
+            resultDiv.classList.remove('hidden');
+
+            try {
+                const bookingData = {
+                    firstName: document.getElementById('firstName').value,
+                    lastName: document.getElementById('lastName').value,
+                    dateOfBirth: document.getElementById('dateOfBirth').value,
+                    gender: document.getElementById('gender').value,
+                    phoneContact: document.getElementById('phoneContact').value,
+                    operationType: document.getElementById('operationType').value,
+                    doctor: document.getElementById('doctor').value,
+                    theater: document.getElementById('theater').value,
+                    surgeryDate: document.getElementById('surgeryDate').value,
+                    surgeryTime: document.getElementById('surgeryTime').value,
+                    surgeryAmPm: document.getElementById('surgeryAmPm').value,
+                    durationHours: parseInt(document.getElementById('durationHours').value),
+                    anesthesiaReview: document.getElementById('anesthesiaReview').value,
+                    classification: document.getElementById('classification').value,
+                    urgencyLevel: document.getElementById('urgencyLevel').value,
+                    diagnosis: document.getElementById('diagnosis').value,
+                    requirements: document.getElementById('requirements').value,
+                    modeOfPayment: document.getElementById('modeOfPayment').value,
+                    location: document.getElementById('location').value,
+                };
+
+                // Parse the time and adjust for AM/PM
+                let [hours, minutes] = bookingData.surgeryTime.split(':').map(Number);
+                if (bookingData.surgeryAmPm === 'PM' && hours !== 12) {
+                    hours += 12;
+                } else if (bookingData.surgeryAmPm === 'AM' && hours === 12) {
+                    hours = 0;
+                }
+
+                // Create start time
+                const startTime = new Date(`${bookingData.surgeryDate}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
+                
+                // Calculate end time by adding duration
+                const endTime = addHours(startTime, bookingData.durationHours);
+
+                const requestBody = {
+                    patient_first_name: bookingData.firstName,
+                    patient_last_name: bookingData.lastName,
+                    date_of_birth: bookingData.dateOfBirth,
+                    gender: bookingData.gender,
+                    phone_contact: bookingData.phoneContact,
+                    operation_type: bookingData.operationType,
+                    doctor: bookingData.doctor,
+                    theater: bookingData.theater,
+                    start_time: startTime.toISOString(),
+                    end_time: endTime.toISOString(),
+                    anesthesia_review: bookingData.anesthesiaReview,
+                    classification: bookingData.classification,
+                    urgency_level: bookingData.urgencyLevel,
+                    diagnosis: bookingData.diagnosis,
+                    special_requirements: bookingData.requirements,
+                    mode_of_payment: bookingData.modeOfPayment,
+                    patient_location: bookingData.location,
+                };
+
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await handleResponse(response);
+                resultDiv.querySelector('pre').textContent = JSON.stringify(data, null, 2);
+                resultDiv.classList.add('bg-green-50');
+                resultDiv.classList.remove('bg-red-50');
+            } catch (error) {
+                resultDiv.querySelector('pre').textContent = error.message;
+                resultDiv.classList.add('bg-red-50');
+                resultDiv.classList.remove('bg-green-50');
+            }
+        });
+
+        // Get Bookings Handler
+        document.getElementById('getBookingsBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('getBookingsResult');
+            resultDiv.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/bookings?select=*`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                const data = await handleResponse(response);
+                resultDiv.querySelector('pre').textContent = JSON.stringify(data, null, 2);
+                resultDiv.classList.add('bg-green-50');
+                resultDiv.classList.remove('bg-red-50');
+            } catch (error) {
+                resultDiv.querySelector('pre').textContent = error.message;
+                resultDiv.classList.add('bg-red-50');
+                resultDiv.classList.remove('bg-green-50');
+            }
+        });
+    </script>
+</body>
+</html>
