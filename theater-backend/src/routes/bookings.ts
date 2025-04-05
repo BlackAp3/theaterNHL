@@ -221,7 +221,7 @@ router.patch('/:id/status', (req, res) => {
   });
   
 
-  router.post('/conflicts', (req, res) => {
+  router.post('/conflicts', authenticateToken, (req: AuthenticatedRequest, res) => {
     const { theater, start_time, end_time } = req.body;
   
     const query = `

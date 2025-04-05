@@ -178,9 +178,14 @@ export async function updateBookingStatus(id: string, status: string) {
 
 
 export async function checkBookingConflict(theater: string, start_time: string, end_time: string) {
+  const token = localStorage.getItem('token'); // ✅ Add this
+
   const response = await fetch('http://localhost:5000/api/bookings/conflicts', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` // ✅ Include token
+    },
     body: JSON.stringify({ theater, start_time, end_time })
   });
 
@@ -191,6 +196,7 @@ export async function checkBookingConflict(theater: string, start_time: string, 
 
   return await response.json(); // no conflict
 }
+
 
 // lib/bookings.ts
 export async function getScheduleBookings(start: Date, end: Date) {
