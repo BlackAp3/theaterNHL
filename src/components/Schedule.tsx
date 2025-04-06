@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { format, startOfWeek, addDays, addMonths, isSameDay, parseISO, isToday, startOfDay, endOfDay, endOfWeek } from 'date-fns';
-import { ChevronLeft, ChevronRight, Clock, Calendar, AlertCircle } from 'lucide-react';
+import  { useState, useEffect } from 'react';
+import { format, startOfWeek, addDays, isSameDay, parseISO, isToday, startOfDay, endOfDay, endOfWeek } from 'date-fns';
+import { ChevronLeft, ChevronRight, Clock,  AlertCircle } from 'lucide-react';
 import { getScheduleBookings } from '../lib/bookings';
 
 // Generate all 24 hours
@@ -256,10 +256,19 @@ function Schedule() {
                 </div>
               )}
 
-              {/* Bookings */}
+              
               {operations
-                .filter(op => isSameDay(parseISO(op.start_time), day))
-                .map(op => {
+  .filter(op => {
+    const opDate = startOfDay(parseISO(op.start_time));
+    const cellDate = startOfDay(day);
+    const match = isSameDay(opDate, cellDate);
+
+
+    console.log('🔍 OP:', op.operation_type, 'start:', opDate.toISOString(), '| cell:', cellDate.toISOString(), '| match:', match);
+
+    return match;
+  })
+.map(op => {
                   const start = parseISO(op.start_time);
                   const end = parseISO(op.end_time);
                   const startHour = start.getHours();

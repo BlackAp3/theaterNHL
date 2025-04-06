@@ -201,15 +201,13 @@ export async function checkBookingConflict(theater: string, start_time: string, 
 // lib/bookings.ts
 export async function getScheduleBookings(start: Date, end: Date) {
   const token = localStorage.getItem('token');
-  const startDate = start.toISOString().split('T')[0];
-  const endDate = end.toISOString().split('T')[0];
 
   const response = await fetch(
-    `http://localhost:5000/api/bookings/schedule?start=${startDate}&end=${endDate}`,
+    `http://localhost:5000/api/bookings/schedule?start=${start.toISOString()}&end=${end.toISOString()}`,
     {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`, // ✅ Add token
+        'Authorization': `Bearer ${token}`,
       },
     }
   );
@@ -220,6 +218,7 @@ export async function getScheduleBookings(start: Date, end: Date) {
 
   return await response.json();
 }
+
 
 
 
