@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { API_URL } from '../config'; // adjust path if needed
+
 
 interface LoginProps {
   onLogin: () => void;
@@ -19,7 +21,7 @@ function Login({ onLogin }: LoginProps) {
     setLoading(true);
   
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

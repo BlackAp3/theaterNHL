@@ -1,4 +1,6 @@
-import { addDays, format, addHours, setHours, setMinutes } from 'date-fns';
+import { addDays, format, setHours, setMinutes } from 'date-fns';
+import { API_URL } from '../config'; // Adjust path based on folder structure
+
 
 // Types
 export interface UserDetails {
@@ -165,7 +167,8 @@ const mockBookings: Booking[] = [
 export const getUsers = async (): Promise<User[]> => {
   const token = localStorage.getItem('token');
 
-  const res = await fetch('http://localhost:5000/api/users', {
+  const res = await 
+fetch(`${API_URL}/users`,  {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -183,7 +186,7 @@ export const getUsers = async (): Promise<User[]> => {
 export const getUserById = async (id: string): Promise<User | null> => {
   const token = localStorage.getItem('token');
 
-  const res = await fetch(`http://localhost:5000/api/auth/users/${id}`, {
+  const res = await fetch(`${API_URL}/auth/users/${id}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -214,7 +217,8 @@ export const createUser = async (
 ): Promise<User> => {
   const token = localStorage.getItem('token');
 
-  const res = await fetch('http://localhost:5000/api/auth/register', {
+  const res = await fetch(`${API_URL}/auth/register`, {
+
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -257,7 +261,7 @@ export const updateUser = async (
 ): Promise<User> => {
   const token = localStorage.getItem('token');
 
-  const res = await fetch(`http://localhost:5000/api/auth/users/${id}`, {
+  const res = await fetch(`${API_URL}/auth/users/${id}`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -277,7 +281,7 @@ export const updateUser = async (
 export const deleteUser = async (id: string): Promise<void> => {
   const token = localStorage.getItem('token');
 
-  const res = await fetch(`http://localhost:5000/api/auth/users/${id}`, {
+  const res = await fetch(`${API_URL}/auth/users/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -314,7 +318,7 @@ export const updateUserPermissions = async (
 };
 
 export const signIn = async (email: string, password: string): Promise<User> => {
-  const res = await fetch('http://localhost:5000/api/auth/login', {
+  const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -350,7 +354,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
   const token = localStorage.getItem('token');
   if (!token) return null;
 
-  const res = await fetch('http://localhost:5000/api/auth/me', {
+  const res = await fetch(`${API_URL}/auth/me`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -389,7 +393,7 @@ export const signOut = async () => {
 export const getUserRole = async (): Promise<string | null> => {
   const token = localStorage.getItem('token');
 
-  const res = await fetch('http://localhost:5000/api/auth/me/role', {
+  const res = await fetch(`${API_URL}/auth/me/role`, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'

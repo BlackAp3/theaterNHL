@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, User, Stethoscope, ClipboardCheck, Building2 } from 'lucide-react';
 import { createBooking, updateBooking, getBookingById, checkBookingConflict  } from '../lib/bookings';
+import Select from 'react-select';
+
 
 
 interface FormData {
@@ -60,10 +62,47 @@ const initialFormData: FormData = {
 
 };
 
-const doctors = [
-  'Dr. Smith - Surgeon',
-  'Dr. Brown - Neurosurgeon',
+const doctorOptions = [
+  { value: "Dr. Fualal Jane Odubu - General Surgeon", label: "Dr. Fualal Jane Odubu - General Surgeon" },
+  { value: "Dr. Noah Masiira Mukasa - General Surgeon", label: "Dr. Noah Masiira Mukasa - General Surgeon" },
+  { value: "Dr. Nelson Onira Alema - General Surgeon", label: "Dr. Nelson Onira Alema - General Surgeon" },
+  { value: "Dr. Johashaphat Jombwe - General Surgeon", label: "Dr. Johashaphat Jombwe - General Surgeon" },
+  { value: "Dr. Ronald Mbiine - General Surgeon", label: "Dr. Ronald Mbiine - General Surgeon" },
+  { value: "Dr. Makobore Patson - General Surgeon", label: "Dr. Makobore Patson - General Surgeon" },
+  { value: "Dr. Vianney Kweyamba - General,HPB,GIT&Laparascopic Surgeon", label: "Dr. Vianney Kweyamba - General,HPB,GIT&Laparascopic Surgeon" },
+  { value: "Dr.Gabriel Okumu - Inhouse-General Surgeon", label: "Dr.Gabriel Okumu - Inhouse-General Surgeon" },
+  { value: "Dr. Francis Lakor - Maxillofacial & Oral Surgeon", label: "Dr. Francis Lakor - Maxillofacial & Oral Surgeon" },
+  { value: "Dr. Michael Bironse - Maxillofacial & Oral Surgeon", label: "Dr. Michael Bironse - Maxillofacial & Oral Surgeon" },
+  { value: "Dr. Juliet Nalwanga - Neurosurgeon", label: "Dr. Juliet Nalwanga - Neurosurgeon" },
+  { value: "Dr. Justin Onen - Neurosurgeon", label: "Dr. Justin Onen - Neurosurgeon" },
+  { value: "Dr. Peter Ssenyonga - Neurosurgeon", label: "Dr. Peter Ssenyonga - Neurosurgeon" },
+  { value: "Dr. Hussein Ssenyonjo - Neurosurgeon", label: "Dr. Hussein Ssenyonjo - Neurosurgeon" },
+  { value: "Dr. Michael Edgar Muhumuza - Neurosurgeon", label: "Dr. Michael Edgar Muhumuza - Neurosurgeon" },
+  { value: "Dr.Rodney Mugarura - Orthopaedic Spine Surgeon", label: "Dr.Rodney Mugarura - Orthopaedic Spine Surgeon" },
+  { value: "Dr.Malagala Joseph - Orthopaedic Surgeon", label: "Dr.Malagala Joseph - Orthopaedic Surgeon" },
+  { value: "Dr. Edward Kironde - Orthopaedic Surgeon", label: "Dr. Edward Kironde - Orthopaedic Surgeon" },
+  { value: "Dr. Ben Mbonye - Orthopaedic Surgeon", label: "Dr. Ben Mbonye - Orthopaedic Surgeon" },
+  { value: "Dr. Edward Naddumba - Orthopaedic Surgeon", label: "Dr. Edward Naddumba - Orthopaedic Surgeon" },
+  { value: "Dr. Isaac Kyamanywa - Orthopaedic Surgeon", label: "Dr. Isaac Kyamanywa - Orthopaedic Surgeon" },
+  { value: "Dr. Isaac Ojangor - Orthopaedic Surgeon", label: "Dr. Isaac Ojangor - Orthopaedic Surgeon" },
+  { value: "Dr. Fred Mutyaba - Orthopaedic Surgeon", label: "Dr. Fred Mutyaba - Orthopaedic Surgeon" },
+  { value: "Dr. Arlene Muzira Nakanwangi - Paediatric Surgeon", label: "Dr. Arlene Muzira Nakanwangi - Paediatric Surgeon" },
+  { value: "Dr. Nasser Kakembo - Paediatric Surgeon", label: "Dr. Nasser Kakembo - Paediatric Surgeon" },
+  { value: "Dr. John Sekabira - Paediatric Surgeon", label: "Dr. John Sekabira - Paediatric Surgeon" },
+  { value: "Dr. Phyllis Kisa - Paediatric Urology Surgeon", label: "Dr. Phyllis Kisa - Paediatric Urology Surgeon" },
+  { value: "Dr. George Galiwango - Plastic & Reconstructive Surgeon", label: "Dr. George Galiwango - Plastic & Reconstructive Surgeon" },
+  { value: "Dr. Martin Tungotyo - Plastic & Reconstructive Surgeon", label: "Dr. Martin Tungotyo - Plastic & Reconstructive Surgeon" },
+  { value: "Dr. Robert Ssentongo - Plastic & Reconstructive Surgeon", label: "Dr. Robert Ssentongo - Plastic & Reconstructive Surgeon" },
+  { value: "Dr. Leonard Odoi - Urologist/General Surgeon", label: "Dr. Leonard Odoi - Urologist/General Surgeon" },
+  { value: "Dr. Badru Ssekitoleko - Urologist/General Surgeon", label: "Dr. Badru Ssekitoleko - Urologist/General Surgeon" },
+  { value: "Dr. Frank Asiimwe Rubabinda - Urologist/General Surgeon", label: "Dr. Frank Asiimwe Rubabinda - Urologist/General Surgeon" },
+  { value: "Dr. Godfrey Nabunwa - Urology Surgeon", label: "Dr. Godfrey Nabunwa - Urology Surgeon" },
+  { value: "DR. NAOMI LEAH KEKISA - Plastic & Reconstructive Surgeon", label: "DR. NAOMI LEAH KEKISA - Plastic & Reconstructive Surgeon" },
+  { value: "DR. FLAVIA WERE - General Surgeon", label: "DR. FLAVIA WERE - General Surgeon" },
+  { value: "DR. CORNELIUS MASAMBA - Plastic & Reconstructive Surgeon", label: "DR. CORNELIUS MASAMBA - Plastic & Reconstructive Surgeon" },
+  { value: "DR. IRENE ASABA ASABA - Plastic & Reconstructive Surgeon", label: "DR. IRENE ASABA ASABA - Plastic & Reconstructive Surgeon" }
 ];
+
 
 const operationRooms = [
   'Theater 1',
@@ -391,21 +430,21 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
         return (
           <div className="space-y-6 animate-slide-up">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-indigo-900">Doctor</label>
-                <select
-                  name="doctor"
-                  value={formData.doctor}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
-                  required
-                >
-                  <option value="">Select Doctor</option>
-                  {doctors.map(doctor => (
-                    <option key={doctor} value={doctor}>{doctor}</option>
-                  ))}
-                </select>
-              </div>
+            <div>
+  <label className="block text-sm font-semibold text-indigo-900">Doctor</label>
+  <Select
+    options={doctorOptions}
+    value={doctorOptions.find(option => option.value === formData.doctor) || null}
+    onChange={(selected) =>
+      setFormData(prev => ({ ...prev, doctor: selected?.value || '' }))
+    }
+    isClearable
+    placeholder="Search or select a doctor"
+    className="mt-1 text-gray-800 font-medium"
+    classNamePrefix="react-select"
+  />
+</div>
+
               <div>
                 <label className="block text-sm font-semibold text-indigo-900">Operation Type</label>
                 <input

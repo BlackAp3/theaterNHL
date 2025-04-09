@@ -1,8 +1,6 @@
 import axios from 'axios';
 import type { User, UserDetails, Permissions } from '../types/user';
-
-// Set your backend base URL here
-const API_URL = 'http://localhost:5000/api';
+import { API_URL } from '../config'; // ✅ Use env-based config
 
 // -------------------------------------
 // GET ALL USERS

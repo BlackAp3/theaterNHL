@@ -4,6 +4,8 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 import { Download, Filter } from 'lucide-react';
+import { API_URL } from '../config'; // Adjust path if needed
+
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6366F1'];
 
@@ -43,7 +45,7 @@ function Reports() {
       setLoading(true);
       const token = localStorage.getItem('token');
 
-      const res = await fetch('http://localhost:5000/api/reports/stats', {
+      const res = await fetch(`${API_URL}/reports/stats`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`, // ✅ Add this
