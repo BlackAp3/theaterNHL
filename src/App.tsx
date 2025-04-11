@@ -1,5 +1,5 @@
-import  { useState, useEffect } from 'react';
-import { Menu, Bell, ChevronDown, Search, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Menu, Bell, ChevronDown, X, LogOut, Settings as SettingsIcon, User } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import Bookings from './components/Bookings';
 import Schedule from './components/Schedule';
@@ -9,6 +9,7 @@ import Settings from './components/Settings';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
 import UserManagement from './components/UserManagement';
+import { Logo } from './components/ui/logo';
 
 type Tab = 'dashboard' | 'bookings' | 'schedule' | 'theaters' | 'reports' | 'settings' | 'users';
 
@@ -46,35 +47,42 @@ function App() {
     permissions?: Record<string, any>;
     details?: Record<string, any>;
   } | null>(null);
-
   const [allowedTabs, setAllowedTabs] = useState<Tab[]>([]);
 
-
-  // Load user info from localStorage on app load
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-  
+
     if (token && storedUser) {
       setIsAuthenticated(true);
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-  
         const tabs = parsedUser.permissions?.tabs || [];
-        setAllowedTabs(tabs); // ✅ Use setAllowedTabs here
-  
+        setAllowedTabs(tabs);
         if (tabs.length > 0) {
-          setCurrentTab(tabs[0]); // ✅ Set default tab
+          setCurrentTab(tabs[0]);
         }
-  
       } catch (e) {
         console.error('Failed to parse user from localStorage', e);
       }
     }
   }, []);
-  
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.profile-menu') && !target.closest('.profile-trigger')) {
+        setShowProfile(false);
+      }
+      if (!target.closest('.notifications-menu') && !target.closest('.notifications-trigger')) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -83,24 +91,21 @@ function App() {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-  
         const tabs = parsedUser.permissions?.tabs || [];
-        setAllowedTabs(tabs); // ✅ Use setAllowedTabs here too
-  
+        setAllowedTabs(tabs);
         if (tabs.length > 0) {
           setCurrentTab(tabs[0]);
         }
-  
       } catch (e) {
         console.error('Invalid user JSON');
       }
     }
   };
-  
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUser(null);
+    setShowProfile(false);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   };
@@ -119,9 +124,8 @@ function App() {
         return <Reports />;
       case 'settings':
         return <Settings />;
-        case 'users':
-          return <UserManagement currentUser={user} />;
-        
+      case 'users':
+        return <UserManagement currentUser={user} />;
       default:
         return <Dashboard />;
     }
@@ -144,90 +148,93 @@ function App() {
               {showMobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
             <div className="flex-shrink-0 flex items-center ml-4 lg:ml-0">
-              <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Hospital Theater
-              </span>
+              <Logo />
             </div>
           </div>
 
-          <div className="flex-1 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-            <div className="flex-1 flex">
-              <div className="w-full max-w-lg lg:max-w-xs">
-                <label htmlFor="search" className="sr-only">Search</label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="search"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder="Search"
-                    type="search"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="ml-4 flex items-center md:ml-6">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="notifications-trigger p-2 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 relative"
+            >
+              <span className="sr-only">View notifications</span>
+              <Bell className="h-6 w-6" />
+              {notifications.some(n => n.unread) && (
+                <div className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-400 ring-2 ring-white" />
+              )}
+            </button>
+
+            <div className="relative">
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 relative"
+                onClick={() => setShowProfile(!showProfile)}
+                className="profile-trigger flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <span className="sr-only">View notifications</span>
-                <Bell className="h-6 w-6" />
-                {notifications.some(n => n.unread) && (
-                  <div className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-400 ring-2 ring-white" />
-                )}
+                <div className="h-9 w-9 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-center text-sm font-medium">
+                  {user ? user.firstName.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user ? `${user.firstName} ${user.lastName}` : 'Unknown User'}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                </div>
+                <ChevronDown className="h-5 w-5 text-gray-400" />
               </button>
 
-              <div className="ml-3 relative">
-                <div>
-                  <button
-                    onClick={() => setShowProfile(!showProfile)}
-                    className="max-w-xs flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-center text-sm font-medium">
-                      {user ? user.firstName.charAt(0).toUpperCase() : 'U'}
-                    </div>
-                    <div className="hidden md:flex md:items-center ml-3">
-                      <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                        {user ? `${user.firstName} ${user.lastName}` : 'Unknown User'}
-                      </span>
-                      <ChevronDown className="ml-2 h-5 w-5 text-gray-400" />
-                    </div>
-                  </button>
-                </div>
-
-                {showProfile && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
-                    <a
-                      href="#profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              {showProfile && (
+                <div className="profile-menu absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500">{user?.email}</p>
+                  </div>
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setCurrentTab('settings');
+                        setShowProfile(false);
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      Your Profile
-                    </a>
-                    <a
-                      href="#settings"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
+                      <SettingsIcon className="h-4 w-4 mr-3" />
                       Settings
-                    </a>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentTab('users');
+                        setShowProfile(false);
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <User className="h-4 w-4 mr-3" />
+                      Profile
+                    </button>
+                  </div>
+                  <div className="border-t border-gray-100 pt-1">
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
+                      <LogOut className="h-4 w-4 mr-3" />
                       Sign out
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {showNotifications && (
-          <div className="absolute right-0 mt-2 w-80 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+          <div className="notifications-menu absolute right-4 mt-2 w-80 rounded-lg shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
             <div className="px-4 py-2 border-b border-gray-100">
-              <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
+                <button className="text-xs text-indigo-600 hover:text-indigo-800">
+                  Mark all as read
+                </button>
+              </div>
             </div>
             <div className="divide-y divide-gray-100">
               {notifications.map((notification) => (
@@ -239,9 +246,14 @@ function App() {
                     <p className="text-sm font-medium text-gray-900">{notification.title}</p>
                     <p className="text-xs text-gray-500">{notification.time}</p>
                   </div>
-                  <p className="text-sm text-gray-500">{notification.message}</p>
+                  <p className="text-sm text-gray-500 mt-1">{notification.message}</p>
                 </div>
               ))}
+            </div>
+            <div className="px-4 py-2 border-t border-gray-100">
+              <button className="text-sm text-indigo-600 hover:text-indigo-800">
+                View all notifications
+              </button>
             </div>
           </div>
         )}
@@ -249,16 +261,15 @@ function App() {
 
       {/* Main Content */}
       <div className="flex h-screen pt-16">
-      <Navigation
-  currentTab={currentTab}
-  setCurrentTab={setCurrentTab}
-  collapsed={sidebarCollapsed}
-  setCollapsed={setSidebarCollapsed}
-  showMobile={showMobileMenu}
-  setShowMobile={setShowMobileMenu}
-  allowedTabs={allowedTabs} // ✅ new prop
-/>
-
+        <Navigation
+          currentTab={currentTab}
+          setCurrentTab={setCurrentTab}
+          collapsed={sidebarCollapsed}
+          setCollapsed={setSidebarCollapsed}
+          showMobile={showMobileMenu}
+          setShowMobile={setShowMobileMenu}
+          allowedTabs={allowedTabs}
+        />
         <main className="flex-1 overflow-auto bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {renderContent()}
