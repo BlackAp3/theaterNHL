@@ -1,4 +1,4 @@
-import { db } from '../config/db';
+import { pool } from '../config/db';
 
 export async function logAuditAction({
   userId,
@@ -14,7 +14,7 @@ export async function logAuditAction({
   description?: string;
 }) {
   try {
-    await db.promise().query(
+    await pool.query(
       `INSERT INTO audit_logs (user_id, action, target_table, target_id, description)
        VALUES (?, ?, ?, ?, ?)`,
       [

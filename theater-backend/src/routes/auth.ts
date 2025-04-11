@@ -1,7 +1,7 @@
 import { RowDataPacket } from 'mysql2';
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { db } from '../config/db';
+import { pool } from '../config/db';
 import { ResultSetHeader } from 'mysql2';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import jwt from 'jsonwebtoken';
@@ -50,25 +50,23 @@ authRouter.post('/register', authenticateToken, async (req: AuthenticatedRequest
         JSON.stringify(permissions)
       ];
   
-      db.query(query, values, async (err, result) => {
-        if (err) {
-          if (err.code === 'ER_DUP_ENTRY') {
-            res.status(409).json({ error: 'Email already exists' });
-            return;
-          }
-          console.error('Error inserting user:', err);
-          res.status(500).json({ error: 'Server error' });
-          return;
-        }
-  
-        const insertResult = result as ResultSetHeader;
-       
-  
+      try {
+        const [result] = await pool.query<ResultSetHeader>(query, values);
+      
         res.status(201).json({
           message: 'User registered successfully',
-          userId: insertResult.insertId
+          userId: result.insertId
         });
-      });
+      } catch (err: any) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          res.status(409).json({ error: 'Email already exists' });
+          return;
+        }
+      
+        console.error('Error inserting user:', err);
+        res.status(500).json({ error: 'Server error' });
+      }
+      
     } catch (err) {
       console.error('Hashing error:', err);
       res.status(500).json({ error: 'Error hashing password' });
@@ -87,15 +85,10 @@ authRouter.post('/change-password', authenticateToken, async (req: Authenticated
 
   const userId = req.user!.id;
 
-  const getUserQuery = 'SELECT * FROM users WHERE id = ?';
-  db.query(getUserQuery, [userId], async (err, results) => {
-    if (err) {
-      console.error('Error fetching user:', err);
-      res.status(500).json({ error: 'Internal server error' });
-      return;
-    }
-
+  try {
+    const [results] = await pool.query('SELECT * FROM users WHERE id = ?', [userId]);
     const user = (results as any[])[0];
+
     if (!user) {
       res.status(404).json({ error: 'User not found' });
       return;
@@ -108,21 +101,16 @@ authRouter.post('/change-password', authenticateToken, async (req: Authenticated
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-    const updateQuery = 'UPDATE users SET password_hash = ? WHERE id = ?';
+    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [hashedNewPassword, userId]);
 
-    db.query(updateQuery, [hashedNewPassword, userId], async (err2) => {
-      if (err2) {
-        console.error('Error updating password:', err2);
-        res.status(500).json({ error: 'Internal server error' });
-        return;
-      }
+    res.json({ message: 'Password changed successfully' });
 
-     
-
-      res.json({ message: 'Password changed successfully' });
-    });
-  });
+  } catch (err) {
+    console.error('❌ Error in change-password:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
 
 // ✅ Login Route
 authRouter.post('/login', async (req: Request, res: Response): Promise<void> => {
@@ -135,15 +123,10 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<void> => 
     return;
   }
 
-  const query = 'SELECT * FROM users WHERE email = ? LIMIT 1';
-  db.query(query, [email], async (err, results) => {
-    if (err) {
-      console.error('Login error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-      return;
-    }
-
+  try {
+    const [results] = await pool.query('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
     const rows = results as RowDataPacket[];
+
     if (rows.length === 0) {
       res.status(401).json({ error: 'Invalid email or password' });
       return;
@@ -157,7 +140,7 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // ✅ Safely parse permissions from JSON string
+    // ✅ Parse permissions
     let parsedPermissions = { tabs: [], actions: [] };
     try {
       parsedPermissions = typeof user.permissions === 'string'
@@ -167,7 +150,7 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<void> => 
       console.warn('⚠️ Failed to parse permissions JSON. Defaulting.');
     }
 
-    // ✅ Create JWT with permissions
+    // ✅ Create JWT
     const token = jwt.sign(
       {
         id: user.id,
@@ -179,7 +162,7 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<void> => 
       { expiresIn: '1d' }
     );
 
-    // ✅ Send full user info and token
+    // ✅ Return token + user info
     res.json({
       token,
       user: {
@@ -193,114 +176,109 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<void> => 
         details: user.details
       }
     });
-  });
+
+  } catch (err) {
+    console.error('❌ Login error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 
+authRouter.get(
+  '/users',
+  authenticateToken,
+  authorizeRoles('admin'), // 👈 only admins can access this
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const [results] = await pool.query(
+        'SELECT id, username, email, role, first_name, last_name, details, permissions FROM users'
+      );
 
-  // ✅ GET /api/auth/users - Admin-only
-  authRouter.get(
-    '/users',
-    authenticateToken,
-    authorizeRoles('admin'), // 👈 only admins can access this
-    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      const query = 'SELECT id, username, email, role, first_name, last_name, details, permissions FROM users';
-  
-      db.query(query, async (err, results) => {
-        if (err) {
-          console.error('Error fetching users:', err);
-          res.status(500).json({ error: 'Server error' });
-          return;
-        }
-  
-        const users = (results as RowDataPacket[]).map(user => ({
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          details: user.details,
-          permissions: user.permissions
-        }));
-  
-        res.json(users);
-      });
+      const users = (results as RowDataPacket[]).map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        details: user.details,
+        permissions: user.permissions
+      }));
+
+      res.json(users);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      res.status(500).json({ error: 'Server error' });
     }
-  );
-  
-// PUT /api/auth/users/:id — Admin-only
+  }
+);
+
+// ✅ PUT /api/auth/users/:id — Admin-only
 authRouter.put(
-    '/users/:id',
-    authenticateToken,
-    authorizeRoles('admin'),
-    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      const { id } = req.params;
-      const { email, role, firstName, lastName, details, permissions } = req.body;
-  
-      if (!email || !role || !firstName || !lastName) {
-        res.status(400).json({ error: 'Missing required fields' });
-        return;
-      }
-  
-      const updateQuery = `
-        UPDATE users SET 
-          email = ?, role = ?, first_name = ?, last_name = ?, 
-          details = ?, permissions = ?
-        WHERE id = ?
-      `;
-  
-      const values = [
-        email,
-        role,
-        firstName,
-        lastName,
-        JSON.stringify(details || {}),
-        JSON.stringify(permissions || {}),
-        id
-      ];
-  
-      db.query(updateQuery, values, async (err, result) => {
-        if (err) {
-          console.error('Error updating user:', err);
-          res.status(500).json({ error: 'Error updating user' });
-          return;
-        }
-  
-      
-        res.json({ message: 'User updated successfully' });
-      });
-    }
-  );
+  '/users/:id',
+  authenticateToken,
+  authorizeRoles('admin'),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const { id } = req.params;
+    const { email, role, firstName, lastName, details, permissions } = req.body;
 
-  // DELETE /api/auth/users/:id - Admin-only
+    if (!email || !role || !firstName || !lastName) {
+      res.status(400).json({ error: 'Missing required fields' });
+      return;
+    }
+
+    const updateQuery = `
+      UPDATE users SET 
+        email = ?, role = ?, first_name = ?, last_name = ?, 
+        details = ?, permissions = ?
+      WHERE id = ?
+    `;
+
+    const values = [
+      email,
+      role,
+      firstName,
+      lastName,
+      JSON.stringify(details || {}),
+      JSON.stringify(permissions || {}),
+      id
+    ];
+
+    try {
+      await pool.query(updateQuery, values);
+      res.json({ message: 'User updated successfully' });
+    } catch (err) {
+      console.error('Error updating user:', err);
+      res.status(500).json({ error: 'Error updating user' });
+    }
+  }
+);
+
+ // ✅ DELETE /api/auth/users/:id - Admin-only
 authRouter.delete(
-    '/users/:id',
-    authenticateToken,
-    authorizeRoles('admin'),
-    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      const { id } = req.params;
-  
-      const deleteQuery = 'DELETE FROM users WHERE id = ?';
-  
-      db.query(deleteQuery, [id], async (err, result) => {
-        if (err) {
-          console.error('Error deleting user:', err);
-          res.status(500).json({ error: 'Failed to delete user' });
-          return;
-        }
-  
-  
-        res.json({ message: 'User deleted successfully' });
-      });
+  '/users/:id',
+  authenticateToken,
+  authorizeRoles('admin'),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const { id } = req.params;
+
+    const deleteQuery = 'DELETE FROM users WHERE id = ?';
+
+    try {
+      await pool.query(deleteQuery, [id]);
+      res.json({ message: 'User deleted successfully' });
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      res.status(500).json({ error: 'Failed to delete user' });
     }
-  );
+  }
+);
 
   // ✅ PATCH /api/auth/users/:id/status — Admin-only
 
 
   // ✅ PATCH /api/auth/users/:id/status — Admin-only
-authRouter.patch(
+  authRouter.patch(
     '/users/:id/status',
     authenticateToken,
     authorizeRoles('admin'),
@@ -319,27 +297,22 @@ authRouter.patch(
         WHERE id = ?
       `;
   
-      db.query(updateQuery, [status, id], async (err, result) => {
-        if (err) {
-          console.error('Error updating status:', err);
-          res.status(500).json({ error: 'Error updating user status' });
-          return;
-        }
-  
-      
-  
+      try {
+        await pool.query(updateQuery, [status, id]);
         res.json({ message: 'User status updated successfully' });
-      });
+      } catch (err) {
+        console.error('Error updating status:', err);
+        res.status(500).json({ error: 'Error updating user status' });
+      }
     }
   );
-
   // ✅ PATCH /api/auth/users/:id/permissions — Admin-only
   authRouter.patch(
     '/users/:id/permissions',
     authenticateToken,
     authorizeRoles('admin'),
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      console.log('🛠️ Incoming ID:', req.params.id); // 🪵 Debug log
+      console.log('🛠️ Incoming ID:', req.params.id);
   
       const id = parseInt(req.params.id);
   
@@ -357,89 +330,86 @@ authRouter.patch(
   
       const updateQuery = `UPDATE users SET permissions = ? WHERE id = ?`;
   
-      db.query(updateQuery, [JSON.stringify(permissions), id], async (err) => {
-        if (err) {
-          console.error('Error updating permissions:', err);
-          res.status(500).json({ error: 'Error updating permissions' });
-          return;
-        }
-  
-     
+      try {
+        await pool.query(updateQuery, [JSON.stringify(permissions), id]);
         res.json({ message: 'User permissions updated successfully' });
-      });
+      } catch (err) {
+        console.error('Error updating permissions:', err);
+        res.status(500).json({ error: 'Error updating permissions' });
+      }
     }
   );
   
-  // ✅ GET /api/auth/me/role — return current user's role
-authRouter.get('/me/role', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.id;
-
-    const query = 'SELECT role FROM users WHERE id = ?';
-    db.query(query, [userId], (err, results) => {
-      if (err) {
-        console.error('Error fetching role:', err);
-        res.status(500).json({ error: 'Internal server error' });
-        return;
-      }
-
-      if (!results || (results as RowDataPacket[]).length === 0) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      const user = (results as RowDataPacket[])[0];
-      res.json({ role: user.role });
-    });
-  } catch (error) {
-    console.error('Error in /me/role route:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-authRouter.get(
-  '/me/tabs',
-  authenticateToken,
-  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  authRouter.get('/me/role', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const userId = req.user?.id;
-
-      const [rows] = await db.promise().query(
-        'SELECT role, permissions FROM users WHERE id = ?',
-        [userId]
-      );
-
-      const user = (rows as any[])[0];
-
-      if (!user) {
+      if (!userId) {
+        res.status(400).json({ error: 'User ID missing from request' });
+        return;
+      }
+  
+      const [rows] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
+  
+      if ((rows as RowDataPacket[]).length === 0) {
         res.status(404).json({ error: 'User not found' });
         return;
       }
-
-      let parsedPermissions: any = { tabs: [] };
-
-      try {
-        parsedPermissions =
-          typeof user.permissions === 'string'
-            ? JSON.parse(user.permissions)
-            : user.permissions || {};
-      } catch {
-        parsedPermissions = {};
-      }
-
-      const userTabs: string[] =
-        parsedPermissions.tabs && parsedPermissions.tabs.length > 0
-          ? parsedPermissions.tabs
-          : defaultTabsForRole[user.role] || ['settings'];
-
-      res.json({ tabs: userTabs });
+  
+      const user = (rows as RowDataPacket[])[0];
+      res.json({ role: user.role });
+  
     } catch (error) {
-      console.error('Error getting user tabs:', error);
-      res.status(500).json({ error: 'Server error' });
+      console.error('❌ Error in /me/role route:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-  }
-);
+  });
 
+  authRouter.get(
+    '/me/tabs',
+    authenticateToken,
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      try {
+        const userId = req.user?.id;
+        if (!userId) {
+          res.status(400).json({ error: 'User ID is required' });
+          return;
+        }
+  
+        const [rows] = await pool.query(
+          'SELECT role, permissions FROM users WHERE id = ?',
+          [userId]
+        );
+  
+        const user = (rows as any[])[0];
+  
+        if (!user) {
+          res.status(404).json({ error: 'User not found' });
+          return;
+        }
+  
+        let parsedPermissions: any = { tabs: [] };
+  
+        try {
+          parsedPermissions =
+            typeof user.permissions === 'string'
+              ? JSON.parse(user.permissions)
+              : user.permissions || {};
+        } catch {
+          parsedPermissions = {};
+        }
+  
+        const userTabs: string[] =
+          parsedPermissions.tabs && parsedPermissions.tabs.length > 0
+            ? parsedPermissions.tabs
+            : defaultTabsForRole[user.role] || ['settings'];
+  
+        res.json({ tabs: userTabs });
+      } catch (error) {
+        console.error('❌ Error getting user tabs:', error);
+        res.status(500).json({ error: 'Server error' });
+      }
+    }
+  );
 
 
  

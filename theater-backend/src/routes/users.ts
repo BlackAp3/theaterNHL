@@ -1,12 +1,16 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { db } from '../config/db';
+import {pool } from '../config/db';
 import { authenticateToken } from '../middleware/auth';
 import { authorizeRoles } from '../middleware/authorizeRole';
 import { logAuditAction } from '../utils/audit';
 import { checkPermission } from '../middleware/checkPermissions';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { defaultActionsByRole } from '../utils/defaultActions'; // Import default actions
+import { RowDataPacket } from 'mysql2';
+import { ResultSetHeader } from 'mysql2';
+
+
 
 
 
@@ -15,12 +19,12 @@ const router = Router();
 router.get(
   '/',
   authenticateToken,
-  checkPermission('manage_users'), // ✅ only users with this action can access
+  checkPermission('manage_users'), // ✅ Only users with this action can access
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const [rows] = await db.promise().query('SELECT * FROM users');
+      const [rows] = await pool.query<RowDataPacket[]>('SELECT * FROM users');
 
-      const users = (rows as any[]).map((u) => ({
+      const users = rows.map((u) => ({
         id: u.id,
         email: u.email,
         role: u.role,
@@ -38,8 +42,6 @@ router.get(
   }
 );
 
-
-// POST /api/users - create a new user
 router.post(
   '/',
   authenticateToken,
@@ -56,31 +58,28 @@ router.post(
         permissions = { tabs: [], actions: [] }
       } = req.body;
 
-      // Check if email already exists
-      const [existing] = await db.promise().query(
-        'SELECT * FROM users WHERE email = ?',
-        [email]
-      );
+      // ✅ Check if email already exists
+      const [existing] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
 
       if ((existing as any[]).length > 0) {
         res.status(400).json({ error: 'Email already exists' });
         return;
       }
 
-      // Hash the password
+      // ✅ Hash the password
       const passwordHash = await bcrypt.hash(password, 10);
 
-      // If no explicit actions provided, use defaults for the role
+      // ✅ Determine final permissions (fallback to defaults by role)
       const defaultActions = permissions.actions?.length
         ? permissions.actions
         : defaultActionsByRole[role] || [];
 
-      // Insert user (✅ now includes username)
-      const [result] = await db.promise().query(
+      // ✅ Insert new user
+      const [result] = await pool.query<ResultSetHeader>(
         `INSERT INTO users (username, email, password_hash, role, first_name, last_name, details, permissions)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          email, // ✅ use email as username
+          email, // use email as username
           email,
           passwordHash,
           role,
@@ -94,9 +93,9 @@ router.post(
         ]
       );
 
-      const newUserId = (result as any).insertId;
+      const newUserId = result.insertId;
 
-      // Audit log
+      // ✅ Log audit trail
       await logAuditAction({
         userId: req.user!.id,
         action: 'create_user',
@@ -105,6 +104,7 @@ router.post(
         description: `Created user ${email}`
       });
 
+      // ✅ Respond
       res.status(201).json({
         id: newUserId,
         email,
@@ -130,12 +130,12 @@ router.post(
 router.get(
   '/:id',
   authenticateToken,
-  checkPermission('view_user'), // 👈 Add this line
+  checkPermission('view_user'),
   async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
 
-      const [rows] = await db.promise().query(
+      const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT id, email, role,
                 first_name AS firstName,
                 last_name AS lastName,
@@ -145,7 +145,7 @@ router.get(
         [id]
       );
 
-      const user = (rows as any[])[0];
+      const user = rows[0];
 
       if (!user) {
         res.status(404).json({ error: 'User not found' });
@@ -154,6 +154,7 @@ router.get(
 
       res.json(user);
 
+      // ✅ Log audit action
       await logAuditAction({
         userId: req.user!.id,
         action: 'view_user',
@@ -161,23 +162,21 @@ router.get(
         targetId: parseInt(id),
         description: `Viewed user ${id}`
       });
-
     } catch (err) {
       console.error('Error fetching user:', err);
       res.status(500).json({ error: 'Server error' });
     }
   }
 );
-
 router.get(
   '/:id',
   authenticateToken,
-  checkPermission('view_user'), // ✅ Only users with this permission can access
+  checkPermission('view_user'),
   async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
 
-      const [rows] = await db.promise().query(
+      const [rows] = await pool.query<RowDataPacket[]>(
         `SELECT id, email, role,
                 first_name AS firstName,
                 last_name AS lastName,
@@ -187,7 +186,7 @@ router.get(
         [id]
       );
 
-      const user = (rows as any[])[0];
+      const user = rows[0];
 
       if (!user) {
         res.status(404).json({ error: 'User not found' });
@@ -203,62 +202,55 @@ router.get(
         targetId: parseInt(id),
         description: `Viewed user ${id}`
       });
-
     } catch (err) {
       console.error('Error fetching user:', err);
       res.status(500).json({ error: 'Server error' });
     }
   }
 );
-
   
 
-  // DELETE /api/users/:id - delete a user (admin only)
-  router.delete(
-    '/:id',
-    authenticateToken,
-    checkPermission('delete_user'), // ✅ ADD THIS
-    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-      try {
-        const { id } = req.params;
-  
-        const [existingRows] = await db.promise().query(
-          'SELECT id FROM users WHERE id = ?',
-          [id]
-        );
-  
-        if ((existingRows as any[]).length === 0) {
-          res.status(404).json({ error: 'User not found' });
-          return;
-        }
-  
-        await db.promise().query(
-          'DELETE FROM users WHERE id = ?',
-          [id]
-        );
-  
-        await logAuditAction({
-          userId: req.user!.id,
-          action: 'delete_user',
-          targetTable: 'users',
-          targetId: parseInt(id),
-          description: `Deleted user ${id}`
-        });
-  
-        res.json({ message: 'User deleted successfully' });
-      } catch (err) {
-        console.error('Error deleting user:', err);
-        res.status(500).json({ error: 'Server error' });
+router.delete(
+  '/:id',
+  authenticateToken,
+  checkPermission('delete_user'),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      const [existingRows] = await pool.query<RowDataPacket[]>(
+        'SELECT id FROM users WHERE id = ?',
+        [id]
+      );
+
+      if (existingRows.length === 0) {
+        res.status(404).json({ error: 'User not found' });
+        return;
       }
+
+      await pool.query('DELETE FROM users WHERE id = ?', [id]);
+
+      await logAuditAction({
+        userId: req.user!.id,
+        action: 'delete_user',
+        targetTable: 'users',
+        targetId: parseInt(id),
+        description: `Deleted user ${id}`
+      });
+
+      res.json({ message: 'User deleted successfully' });
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      res.status(500).json({ error: 'Server error' });
     }
-  );
-  
+  }
+);
 
   // PATCH /api/users/:id/password - admin-only password reset
   router.patch(
     '/:id/password',
     authenticateToken,
-    checkPermission('reset_password'), // ✅ ADD THIS
+    checkPermission('reset_password'),
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const { id } = req.params;
@@ -269,19 +261,19 @@ router.get(
           return;
         }
   
-        const [rows] = await db.promise().query(
+        const [rows] = await pool.query<RowDataPacket[]>(
           'SELECT id FROM users WHERE id = ?',
           [id]
         );
   
-        if ((rows as any[]).length === 0) {
+        if (rows.length === 0) {
           res.status(404).json({ error: 'User not found' });
           return;
         }
   
         const hashedPassword = await bcrypt.hash(newPassword, 10);
   
-        await db.promise().query(
+        await pool.query(
           'UPDATE users SET password_hash = ? WHERE id = ?',
           [hashedPassword, id]
         );
@@ -301,13 +293,11 @@ router.get(
       }
     }
   );
-  
 
-  // PATCH /api/users/:id/status - Update user status
   router.patch(
     '/:id/status',
     authenticateToken,
-    checkPermission('update_status'), // ✅ ADD THIS
+    checkPermission('update_status'),
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const { id } = req.params;
@@ -319,7 +309,7 @@ router.get(
           return;
         }
   
-        await db.promise().query(
+        await pool.query(
           `UPDATE users SET details = JSON_SET(details, '$.status', ?) WHERE id = ?`,
           [status, id]
         );
@@ -345,7 +335,7 @@ router.get(
   router.patch(
     '/:id/permissions',
     authenticateToken,
-    checkPermission('update_permissions'), // ✅ NEW PERMISSION CHECK
+    checkPermission('update_permissions'),
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       try {
         const id = parseInt(req.params.id);
@@ -366,7 +356,7 @@ router.get(
           return;
         }
   
-        await db.promise().query(
+        await pool.query(
           `UPDATE users SET permissions = ? WHERE id = ?`,
           [JSON.stringify(permissions), id]
         );
@@ -403,10 +393,10 @@ router.get(
         } = req.body;
   
         // Use the default actions for the role
-        const actions = defaultActionsByRole[role] || [];  // Default actions for the role
+        const actions = defaultActionsByRole[role] || [];
   
-        // Update user
-        await db.promise().query(
+        // Update user using pooled connection
+        await pool.query(
           `UPDATE users
            SET first_name = ?, last_name = ?, role = ?, details = ?, permissions = ?
            WHERE id = ?`,
@@ -415,7 +405,7 @@ router.get(
             lastName,
             role,
             JSON.stringify(details),
-            JSON.stringify({ tabs: permissions.tabs, actions }), // Set actions here
+            JSON.stringify({ tabs: permissions.tabs, actions }),
             id
           ]
         );
@@ -428,7 +418,6 @@ router.get(
       }
     }
   );
-  
   
   
 

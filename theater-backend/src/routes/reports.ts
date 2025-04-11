@@ -1,10 +1,10 @@
-import { Router } from 'express';
-import { db } from '../config/db';
+import { Router, Request, Response } from 'express';
+import { pool } from '../config/db';
 import { RowDataPacket } from 'mysql2';
 
 const router = Router();
 
-router.get('/stats', async (req, res) => {
+router.get('/stats', async (req: Request, res: Response): Promise<void> => {
   try {
     const monthlyQuery = `
       SELECT MONTHNAME(start_time) AS month, COUNT(*) AS operations
@@ -19,10 +19,10 @@ router.get('/stats', async (req, res) => {
       GROUP BY operation_type
     `;
 
-    const [monthlyData] = await db.promise().query<RowDataPacket[]>(monthlyQuery);
-    const [operationTypes] = await db.promise().query<RowDataPacket[]>(typesQuery);
+    const [monthlyData] = await pool.query<RowDataPacket[]>(monthlyQuery);
+    const [operationTypes] = await pool.query<RowDataPacket[]>(typesQuery);
 
-    // Fake metrics for now (you can calculate real ones later)
+    // Placeholder metrics – replace with actual calculations as needed
     const metrics = {
       averageOperationTime: '1h 45m',
       theaterUtilization: '82%',

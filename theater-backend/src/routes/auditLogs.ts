@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../config/db';
+import { pool } from '../config/db';
 import { authenticateToken } from '../middleware/auth';
 import { authorizeRoles } from '../middleware/authorizeRole';
 
@@ -8,7 +8,7 @@ const router = Router();
 // GET /api/audit-logs - Admin only
 router.get('/', authenticateToken, authorizeRoles('admin'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const [logs] = await db.promise().query(
+    const [logs] = await pool.query(
       `SELECT 
          a.id,
          a.user_id,
