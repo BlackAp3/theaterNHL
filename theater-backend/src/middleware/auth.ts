@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { db } from '../config/db';
+import { pool } from '../config/db'; // ✅ changed from db to pool
 import { RowDataPacket } from 'mysql2';
 
 // Authenticated request type
@@ -37,9 +37,10 @@ export function authenticateToken(
     }
 
     try {
-      const [rows] = await db
-        .promise()
-        .query<RowDataPacket[]>('SELECT id, username, role, permissions FROM users WHERE id = ?', [decoded.id]);
+      const [rows] = await pool.query<RowDataPacket[]>(
+        'SELECT id, username, role, permissions FROM users WHERE id = ?',
+        [decoded.id]
+      );
 
       const dbUser = rows[0];
 
