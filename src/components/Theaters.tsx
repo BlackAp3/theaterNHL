@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Clock, AlertTriangle, Loader2, Calendar, User, X } from 'lucide-react';
+import { Activity, Clock, AlertTriangle, Calendar, User, X } from 'lucide-react';
 import { getTheaterStatus, initializeWebSocket, closeWebSocket, Theater, TheaterStatus } from '../lib/bookings';
 import { format } from 'date-fns';
 import { Skeleton } from './ui/skeleton';
