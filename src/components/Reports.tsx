@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, Legend, AreaChart, Area
 } from 'recharts';
-import { Download, Filter, Calendar, TrendingUp, Clock, Users, AlertTriangle, FileText, Table, ChevronDown } from 'lucide-react';
+import { Download, Calendar, TrendingUp, Users, AlertTriangle, FileText, Table, ChevronDown } from 'lucide-react';
 import { API_URL } from '../config';
-import { format, subMonths, startOfMonth, endOfMonth, subDays, addDays } from 'date-fns';
-
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#6366F1'];
+import { format, subMonths, startOfMonth, endOfMonth, subDays } from 'date-fns';
 
 interface MonthlyData {
   month: string;
@@ -16,12 +14,6 @@ interface MonthlyData {
   avgDuration: number;
   cancellations: number;
   totalPatients: number;
-}
-
-interface OperationTypeData {
-  name: string;
-  value: number;
-  trend: number;
 }
 
 interface Metrics {
@@ -44,7 +36,6 @@ interface DateRange {
 function Reports() {
   const [loading, setLoading] = useState(true);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
-  const [operationTypes, setOperationTypes] = useState<OperationTypeData[]>([]);
   const [metrics, setMetrics] = useState<Metrics>({
     averageOperationTime: '0h 0m',
     theaterUtilization: '0%',
@@ -63,11 +54,7 @@ function Reports() {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  useEffect(() => {
-    fetchReports();
-  }, [dateRange]);
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -83,7 +70,6 @@ function Reports() {
 
       const data = await res.json();
       setMonthlyData(data.monthlyData || []);
-      setOperationTypes(data.operationTypes || []);
       setMetrics(data.metrics || {
         averageOperationTime: '0h 0m',
         theaterUtilization: '0%',
@@ -101,7 +87,11 @@ function Reports() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
   const handleDateRangeChange = (startDate: Date, endDate: Date) => {
     setDateRange({ startDate, endDate });

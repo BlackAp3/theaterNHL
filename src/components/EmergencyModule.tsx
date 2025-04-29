@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import {  cancelEmergencyBooking } from '../lib/bookings';
+import { cancelEmergencyBooking } from '../lib/bookings';
 import { Badge } from './ui/badge';
 import { formatTime } from '../lib/utils';
 import { AlertTriangle, ChevronDown, ChevronUp, UserCircle, Stethoscope, FileText, ChevronLeft, MoreHorizontal, ChevronRight } from 'lucide-react';
-import NewEmergencyForm from './NewEmergencyForm'; // 🧠 Must import
+import NewEmergencyForm from './NewEmergencyForm';
 import { getEmergencies } from '../lib/emergencies';
 import EditEmergencyForm from './EditEmergencyForm';
 import { Card } from './ui/card';
@@ -25,7 +25,7 @@ interface EmergencyBooking {
 }
 
 export default function EmergencyModule() {
-  const [emergencies, setEmergencies] = useState([]);
+  const [emergencies, setEmergencies] = useState<EmergencyBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEmergencyForm, setShowEmergencyForm] = useState(false);
@@ -35,13 +35,9 @@ export default function EmergencyModule() {
   const [currentPage, setCurrentPage] = useState(1);
   const emergenciesPerPage = 10;
 
-  useEffect(() => {
-    fetchEmergencies();
-  }, []);
-
   const fetchEmergencies = async () => {
     try {
-      const data = await getEmergencies(); // pass true ➔ only emergencies
+      const data = await getEmergencies();
       setEmergencies(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load emergencies');
@@ -49,7 +45,10 @@ export default function EmergencyModule() {
       setLoading(false);
     }
   };
-  
+
+  useEffect(() => {
+    fetchEmergencies();
+  }, []);
 
   const handleCancel = async (bookingId: string) => {
     if (!confirm('Are you sure you want to cancel this emergency booking?')) return;
@@ -220,117 +219,138 @@ export default function EmergencyModule() {
           </div>
   
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="w-8 px-6 py-3"></th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Patient
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Patient ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Doctor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Operation
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Theater
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Start - End
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {emergencies
-                  .filter((booking: EmergencyBooking) =>
-                    booking.patient_first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    booking.patient_last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    booking.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    booking.operation_type.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .slice((currentPage - 1) * emergenciesPerPage, currentPage * emergenciesPerPage)
-                  .map((booking: EmergencyBooking) => (
-                    <React.Fragment key={booking.id}>
-                      <tr
-                        className="hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => toggleRowExpansion(booking.id)}
-                      >
-                        <td className="px-6 py-4">
-                          {expandedRows.has(booking.id) ? (
-                            <ChevronUp className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 flex-shrink-0">
-                              <div className="h-full w-full rounded-full bg-gradient-to-r from-red-100 to-pink-100 flex items-center justify-center text-red-600 font-medium">
-                                {booking.patient_first_name[0]}{booking.patient_last_name[0]}
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                <span className="ml-2 text-gray-600">Loading emergencies...</span>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">Error loading emergencies</h3>
+                      <div className="mt-2 text-sm text-red-700">{error}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="w-8 px-6 py-3"></th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Patient
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Patient ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Doctor
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Operation
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Theater
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Start - End
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {emergencies
+                    .filter((booking: EmergencyBooking) =>
+                      booking.patient_first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      booking.patient_last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      booking.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      booking.operation_type.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .slice((currentPage - 1) * emergenciesPerPage, currentPage * emergenciesPerPage)
+                    .map((booking: EmergencyBooking) => (
+                      <React.Fragment key={booking.id}>
+                        <tr
+                          className="hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={() => toggleRowExpansion(booking.id)}
+                        >
+                          <td className="px-6 py-4">
+                            {expandedRows.has(booking.id) ? (
+                              <ChevronUp className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 flex-shrink-0">
+                                <div className="h-full w-full rounded-full bg-gradient-to-r from-red-100 to-pink-100 flex items-center justify-center text-red-600 font-medium">
+                                  {booking.patient_first_name[0]}{booking.patient_last_name[0]}
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {booking.patient_first_name} {booking.patient_last_name}
+                                </div>
                               </div>
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {booking.patient_first_name} {booking.patient_last_name}
-                              </div>
+                          </td>
+                          <td className="px-6 py-4 font-mono text-red-700">{booking.patient_id}</td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">{booking.doctor}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">{booking.operation_type}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-500">{booking.theater}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">
+                              {formatTime(booking.start_time)} – {formatTime(booking.end_time)}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 font-mono text-red-700">{booking.patient_id}</td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{booking.doctor}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{booking.operation_type}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-500">{booking.theater}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">
-                            {formatTime(booking.start_time)} – {formatTime(booking.end_time)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 space-x-2">
-                          <Badge variant="error" size="sm" className="inline-flex items-center gap-1">
-                            <AlertTriangle className="h-4 w-4" /> Emergency
-                          </Badge>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCancel(booking.id);
-                            }}
-                            className="ml-2 inline-flex items-center px-2 py-1 rounded bg-red-600 text-white text-xs hover:bg-red-700 transition"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(booking);
-                            }}
-                            className="ml-2 inline-flex items-center px-2 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700 transition"
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                      {expandedRows.has(booking.id) && (
-                        <tr>
-                          {renderExpandedDetails(booking)}
+                          </td>
+                          <td className="px-6 py-4 space-x-2">
+                            <Badge variant="error" size="sm" className="inline-flex items-center gap-1">
+                              <AlertTriangle className="h-4 w-4" /> Emergency
+                            </Badge>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancel(booking.id);
+                              }}
+                              className="ml-2 inline-flex items-center px-2 py-1 rounded bg-red-600 text-white text-xs hover:bg-red-700 transition"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(booking);
+                              }}
+                              className="ml-2 inline-flex items-center px-2 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700 transition"
+                            >
+                              Edit
+                            </button>
+                          </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-              </tbody>
-            </table>
+                        {expandedRows.has(booking.id) && (
+                          <tr>
+                            {renderExpandedDetails(booking)}
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </>
       )}
