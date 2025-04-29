@@ -97,7 +97,7 @@ function Schedule() {
           <div>Patient: {operation.patient_first_name} {operation.patient_last_name}</div>
           <div>Doctor: {operation.doctor}</div>
           <div>Theater: {operation.theater}</div>
-          <div>Time: {format(parseISO(operation.start_time), 'h:mm a')} - {format(parseISO(operation.end_time), 'h:mm a')}</div>
+          <div>Time: {format(parseISO(operation.start_time), 'HH:mm')} - {format(parseISO(operation.end_time), 'HH:mm')}</div>
           <div className="mt-1">
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusColors[operation.status]}`}>
               {operation.status.charAt(0).toUpperCase() + operation.status.slice(1)}

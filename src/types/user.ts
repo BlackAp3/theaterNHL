@@ -41,10 +41,12 @@ export interface TabPermission {
 export const AVAILABLE_TABS: TabPermission[] = [
   { id: 'bookings', name: 'Bookings', description: 'Manage patient bookings' },
   { id: 'theater', name: 'Theater', description: 'Manage theater operations' },
+  { id: 'emergency', name: 'Emergency', description: 'View and manage emergency operations' }, // ✅ Add this line
   { id: 'reports', name: 'Reports', description: 'View and export reports' },
   { id: 'users', name: 'Users', description: 'Manage system users' },
   { id: 'settings', name: 'Settings', description: 'System configurations' }
 ];
+
 
 export const AVAILABLE_ACTIONS: string[] = [
   'view_bookings',

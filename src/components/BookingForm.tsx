@@ -6,11 +6,10 @@ import Select from 'react-select';
 
 
 interface FormData {
+  patientId: string;
   firstName: string;
   lastName: string;
-  dobDay: string;
-  dobMonth: string;
-  dobYear: string;
+  age: string;
   gender: string;
   phoneContact: string;
   doctor: string;
@@ -20,7 +19,6 @@ interface FormData {
   surgeryYear: string;
   operationTime: string;
   operationPeriod: string;
-  durationHours: string;
   durationMinutes: string;
   operationRoom: string;
   anesthesiaReview: string;
@@ -34,22 +32,20 @@ interface FormData {
 }
 
 const initialFormData: FormData = {
+  patientId: '',
   firstName: '',
   lastName: '',
-  dobDay: '',
-  dobMonth: '',
-  dobYear: '',
+  age: '',
   gender: '',
   phoneContact: '',
   doctor: '',
   operationType: '',
   surgeryDay: '',
   surgeryMonth: '',
-  surgeryYear: '',
+  surgeryYear: new Date().getFullYear().toString(),
   operationTime: '',
   operationPeriod: 'AM',
-  durationHours: '1',
-  durationMinutes: '00',
+  durationMinutes: '60',
   operationRoom: '',
   anesthesiaReview: '',
   classification: '',
@@ -58,8 +54,7 @@ const initialFormData: FormData = {
   requirements: '',
   modeOfPayment: '',
   location: '',
-  status: 'scheduled' // ← Add this
-
+  status: 'scheduled'
 };
 
 const doctorOptions = [
@@ -143,12 +138,10 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
       setLoading(true);
       const booking = await getBookingById(id);
   
-      const dob = new Date(booking.date_of_birth);
       const start = new Date(booking.start_time);
       const end = new Date(booking.end_time);
   
       const durationMs = end.getTime() - start.getTime();
-      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
       const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
   
       const timeStr = start.toLocaleTimeString([], {
@@ -164,11 +157,10 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
       const bookingTyped = booking as any; // (temporary fix, fast)
 
       setFormData({
+        patientId: booking.patient_id,
         firstName: booking.patient_first_name,
         lastName: booking.patient_last_name,
-        dobDay: String(dob.getDate()).padStart(2, '0'),
-        dobMonth: String(dob.getMonth() + 1),
-        dobYear: String(dob.getFullYear()),
+        age: booking.age,
         gender: booking.gender,
         phoneContact: booking.phone_contact,
         doctor: booking.doctor,
@@ -178,7 +170,6 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
         surgeryYear: String(start.getFullYear()),
         operationTime: timeStr,
         operationPeriod: period,
-        durationHours: String(durationHours),
         durationMinutes: String(durationMinutes),
         operationRoom: booking.theater,
         anesthesiaReview: booking.anesthesia_review,
@@ -203,13 +194,8 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDurationChange = (type: 'hours' | 'minutes', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [type === 'hours' ? 'durationHours' : 'durationMinutes']: value
-    }));
-  };
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -218,21 +204,38 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
     setIsSubmitting(true);
   
     try {
-      const dateOfBirth = `${formData.dobYear}-${String(formData.dobMonth).padStart(2, '0')}-${String(formData.dobDay).padStart(2, '0')}`;
+      const currentYear = new Date().getFullYear();
+      const birthYear = currentYear - parseInt(formData.age || '0');
+      const dateOfBirth = `${birthYear}-01-01`; // defaulting to Jan 1st
       const surgeryDate = `${formData.surgeryYear}-${String(formData.surgeryMonth).padStart(2, '0')}-${String(formData.surgeryDay).padStart(2, '0')}`;
   
       // ⏱️ Calculate start and end times
-      const startTime = new Date(`${surgeryDate} ${formData.operationTime} ${formData.operationPeriod}`);
-      const endTime = new Date(startTime.getTime() + (
-        parseInt(formData.durationHours) * 60 + parseInt(formData.durationMinutes)
-      ) * 60000);
-  
-      const isoStart = startTime.toISOString();
-      const isoEnd = endTime.toISOString();
+      let [hours, minutes] = formData.operationTime.split(':').map(Number);
+      console.log('Selected time:', formData.operationTime);
+      console.log('Parsed hours and minutes:', { hours, minutes });
+      
+      // Create date string in local timezone
+      const startTimeStr = `${surgeryDate}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+      console.log('Start time string:', startTimeStr);
+      
+      // Create date object and convert to UTC
+      const startTime = new Date(startTimeStr);
+      console.log('Start time:', startTime.toISOString());
+      
+      const totalMinutes = parseInt(formData.durationMinutes || '0');
+      console.log('Duration minutes:', totalMinutes);
+      
+      const endTime = new Date(startTime.getTime() + totalMinutes * 60000);
+      console.log('End time:', endTime.toISOString());
+      
+      // Format times in 24-hour format for display
+      const formattedStartTime = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      const formattedEndTime = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      console.log('Formatted times:', { formattedStartTime, formattedEndTime });
   
       // ✅ STEP: Conflict check BEFORE creating or updating booking
       try {
-        await checkBookingConflict(formData.operationRoom, isoStart, isoEnd);
+        await checkBookingConflict(formData.operationRoom, startTime.toISOString(), endTime.toISOString());
       } catch (conflictError) {
         setError(conflictError instanceof Error ? conflictError.message : 'Conflict check failed');
         setIsSubmitting(false);
@@ -241,6 +244,7 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
   
       // 🧠 Only proceed with booking after confirming no conflict
       const bookingData = {
+        patientId: formData.patientId,
         firstName: formData.firstName,
         lastName: formData.lastName,
         dateOfBirth,
@@ -250,9 +254,9 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
         doctor: formData.doctor,
         theater: formData.operationRoom,
         surgeryDate,
-        surgeryTime: formData.operationTime,
-        surgeryAmPm: formData.operationPeriod,
-        durationHours: parseInt(formData.durationHours),
+        surgeryTime: formattedStartTime,
+        surgeryAmPm: '24h', // Since we're using 24-hour format
+        durationHours: Math.floor(parseInt(formData.durationMinutes) / 60),
         durationMinutes: parseInt(formData.durationMinutes),
         anesthesiaReview: formData.anesthesiaReview,
         classification: formData.classification,
@@ -263,6 +267,7 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
         patientLocation: formData.location,
         status: formData.status
       };
+      console.log('Booking data being sent:', bookingData);
   
       if (bookingId) {
         await updateBooking(bookingId, bookingData);
@@ -300,9 +305,9 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
 
   const generateTimeOptions = () => {
     const times = [];
-    for (let hour = 1; hour <= 12; hour++) {
+    for (let hour = 0; hour < 24; hour++) {
       for (let minute = 0; minute < 60; minute += 15) {
-        const timeString = `${hour}:${minute.toString().padStart(2, '0')}`;
+        const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         times.push(timeString);
       }
     }
@@ -328,6 +333,18 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
         return (
           <div className="space-y-6 animate-slide-up">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+  <label className="block text-sm font-semibold text-indigo-900">Patient ID</label>
+  <input
+    type="text"
+    name="patientId"
+    value={formData.patientId}
+    onChange={handleInputChange}
+    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
+    required
+  />
+</div>
+
               <div>
                 <label className="block text-sm font-semibold text-indigo-900">First Name</label>
                 <input
@@ -354,41 +371,17 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-indigo-900">Date of Birth</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <select
-                    name="dobDay"
-                    value={formData.dobDay}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
-                    required
-                  >
-                    <option value="">Day</option>
-                    {generateOptions(1, 31)}
-                  </select>
-                  <select
-                    name="dobMonth"
-                    value={formData.dobMonth}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
-                    required
-                  >
-                    <option value="">Month</option>
-                    {months.map((month, index) => (
-                      <option key={month} value={index + 1}>{month}</option>
-                    ))}
-                  </select>
-                  <select
-                    name="dobYear"
-                    value={formData.dobYear}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
-                    required
-                  >
-                    <option value="">Year</option>
-                    {generateOptions(1940, new Date().getFullYear())}
-                  </select>
-                </div>
+              <label className="block text-sm font-semibold text-indigo-900">Age</label>
+<input
+  type="number"
+  name="age"
+  min={0}
+  value={formData.age}
+  onChange={handleInputChange}
+  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
+  required
+/>
+
               </div>
 
               <div>
@@ -499,7 +492,7 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
 
               <div>
                 <label className="block text-sm font-semibold text-indigo-900">Surgery Time</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   <select
                     name="operationTime"
                     value={formData.operationTime}
@@ -512,61 +505,25 @@ function BookingForm({ onBack, bookingId }: BookingFormProps) {
                       <option key={time} value={time}>{time}</option>
                     ))}
                   </select>
-                  <select
-                    name="operationPeriod"
-                    value={formData.operationPeriod}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
-                    required
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-indigo-900">Duration</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="relative">
-                    <select
-                      value={formData.durationHours}
-                      onChange={(e) => handleDurationChange('hours', e.target.value)}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium appearance-none"
-                      required
-                    >
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(hour => (
-                        <option key={hour} value={hour}>{hour} hr</option>
-                      ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <select
-                      value={formData.durationMinutes}
-                      onChange={(e) => handleDurationChange('minutes', e.target.value)}
-                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium appearance-none"
-                      required
-                    >
-                      <option value="00">00 min</option>
-                      <option value="15">15 min</option>
-                      <option value="30">30 min</option>
-                      <option value="45">45 min</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                      <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div>
+  <label className="block text-sm font-semibold text-indigo-900">Duration (in minutes)</label>
+  <input
+    type="number"
+    name="durationMinutes"
+    min={5}
+    step={5}
+    value={formData.durationMinutes}
+    onChange={handleInputChange}
+    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
+    required
+  />
+</div>
+
 
               <div>
                 <label className="block text-sm font-semibold text-indigo-900">Operation Room</label>

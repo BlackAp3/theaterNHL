@@ -18,7 +18,7 @@ import {
   Filter,
   X
 } from 'lucide-react';
-import { getBookings, updateBookingStatus } from '../lib/bookings';
+import { getBookings, updateBookingStatus, escalateEmergencyBooking } from '../lib/bookings';
 
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -26,6 +26,7 @@ import { Card } from './ui/card';
 import { Skeleton } from './ui/skeleton';
 import { cn, formatDate, formatTime } from '../lib/utils';
 import BookingForm from './BookingForm';
+import EmergencyEscalationModal from './ui/EmergencyEscalationModal';
 
 
 const statusMap: { [key: string]: { label: string; icon: string; variant: 'default' | 'success' | 'warning' | 'error' } } = {
@@ -49,11 +50,17 @@ const statusMap: { [key: string]: { label: string; icon: string; variant: 'defau
     label: 'Canceled',
     icon: '❌',
     variant: 'error'
-  }
+  },
+  rescheduled: { 
+    label: 'Rescheduled',
+    icon: '🔁',
+    variant: 'warning'
+  }  
 };
 
 interface Booking {
   id: string;
+  patient_id: string;
   patient_first_name: string;
   patient_last_name: string;
   operation_type: string;
@@ -72,7 +79,11 @@ interface Booking {
   special_requirements: string;
   mode_of_payment: string;
   patient_location: string;
+  is_emergency: boolean; // ✅ required
+  emergency_reason?: string;
+  overridden_booking_id?: number;
 }
+
 
 function Bookings() {
   const [showForm, setShowForm] = useState(false);
@@ -87,6 +98,9 @@ function Bookings() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const bookingsPerPage = 10;
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+const [escalationBooking, setEscalationBooking] = useState<Booking | null>(null);
+
 
   useEffect(() => {
     fetchBookings();
@@ -145,12 +159,15 @@ function Bookings() {
   };
 
   const filteredBookings = bookings.filter(booking => {
+    if (booking.status === 'rescheduled' || booking.is_emergency) return false;
+
     const searchString = searchTerm.toLowerCase();
     const matchesSearch = (
       booking.patient_first_name?.toLowerCase().includes(searchString) ||
       booking.patient_last_name?.toLowerCase().includes(searchString) ||
       booking.operation_type?.toLowerCase().includes(searchString) ||
-      booking.doctor?.toLowerCase().includes(searchString)
+      booking.doctor?.toLowerCase().includes(searchString) ||
+      booking.patient_id?.toLowerCase().includes(searchString) 
     );
 
     const matchesFilters = activeFilters.length === 0 || activeFilters.includes(booking.status);
@@ -158,12 +175,11 @@ function Bookings() {
     return matchesSearch && matchesFilters;
   });
 
+  const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
   const currentBookings = filteredBookings.slice(
     (currentPage - 1) * bookingsPerPage,
     currentPage * bookingsPerPage
   );
-
-  const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
 
   const renderStatusBadge = (bookingId: string, status: string) => {
     const statusInfo = statusMap[status] || { label: 'Unknown', icon: '❓', variant: 'default' };
@@ -229,6 +245,11 @@ function Bookings() {
             </Card.Header>
             <Card.Body className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+  <div className="text-gray-500">Patient ID</div>
+  <div className="font-mono text-sm text-indigo-700">{booking.patient_id}</div>
+</div>
+
                 <div>
                   <div className="text-gray-500">Full Name</div>
                   <div className="font-medium text-gray-900">
@@ -279,16 +300,19 @@ function Bookings() {
                 <div>
                   <div className="text-gray-500">Urgency Level</div>
                   <Badge
-                    variant={
-                      booking.urgency_level === 'emergency' 
-                        ? 'error'
-                        : booking.urgency_level === 'urgent'
-                        ? 'warning'
-                        : 'success'
-                    }
-                  >
-                    {booking.urgency_level.charAt(0).toUpperCase() + booking.urgency_level.slice(1)}
-                  </Badge>
+  variant={
+    booking.urgency_level === 'emergency'
+      ? 'error'
+      : booking.urgency_level === 'urgent'
+      ? 'warning'
+      : 'success'
+  }
+>
+  {typeof booking.urgency_level === 'string'
+    ? booking.urgency_level.charAt(0).toUpperCase() + booking.urgency_level.slice(1)
+    : 'N/A'}
+</Badge>
+
                 </div>
                 <div>
                   <div className="text-gray-500">Duration</div>
@@ -334,11 +358,18 @@ function Bookings() {
                 </div>
               </div>
               <div>
-                <div className="text-gray-500">Payment Method</div>
-                <Badge className="mt-1">
-                  {booking.mode_of_payment.charAt(0).toUpperCase() + booking.mode_of_payment.slice(1)}
-                </Badge>
-              </div>
+  <div>
+  <div className="text-gray-500">Payment Method</div>
+  <Badge className="mt-1">
+    {typeof booking.mode_of_payment === 'string'
+      ? booking.mode_of_payment.charAt(0).toUpperCase() + booking.mode_of_payment.slice(1)
+      : 'N/A'}
+  </Badge>
+</div>
+
+</div>
+
+
             </Card.Body>
           </Card>
         </div>
@@ -358,6 +389,8 @@ function Bookings() {
       />
     );
   }
+
+  
 
   return (
     <div className="space-y-6">
@@ -491,6 +524,7 @@ function Bookings() {
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="w-8 px-6 py-3"></th>
+              
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Patient
                     </th>
@@ -574,6 +608,20 @@ function Bookings() {
                           >
                             Edit
                           </Button>
+                          <Button
+  variant="outline"
+  className="text-red-600 border-red-600 hover:bg-red-50"
+  size="sm"
+  onClick={(e) => {
+    e.stopPropagation();
+    setEscalationBooking(booking); // booking: the row's data
+    setShowEmergencyModal(true);   // trigger modal open
+  }}
+>
+  Escalate 🚨
+</Button>
+
+
                         </td>
                       </tr>
                       {expandedRows.has(booking.id) && (
@@ -585,6 +633,29 @@ function Bookings() {
                   ))}
                 </tbody>
               </table>
+              <EmergencyEscalationModal
+  isOpen={showEmergencyModal}
+  patientName={`${escalationBooking?.patient_first_name} ${escalationBooking?.patient_last_name}`}
+  onClose={() => {
+    setShowEmergencyModal(false);
+    setEscalationBooking(null);
+  }}
+  onSubmit={async (reason) => {
+    if (!escalationBooking) return;
+
+    try {
+      await escalateEmergencyBooking(escalationBooking.id, reason);
+      alert('Escalated to emergency successfully');
+      fetchBookings(); // Refresh table
+    } catch (err: any) {
+      alert(err.message || 'Escalation failed');
+    } finally {
+      setShowEmergencyModal(false);
+      setEscalationBooking(null);
+    }
+  }}
+/>
+
             </div>
 
             <Card.Footer className="bg-gray-50">
@@ -646,6 +717,8 @@ function Bookings() {
       </Card>
     </div>
   );
+  
 }
+
 
 export default Bookings;

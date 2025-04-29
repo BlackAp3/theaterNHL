@@ -25,17 +25,20 @@ const AVAILABLE_TABS = [
   { id: 'theaters', label: 'Theaters' },
   { id: 'reports', label: 'Reports' },
   { id: 'users', label: 'User Management' },
-  { id: 'settings', label: 'Settings' }
+  { id: 'settings', label: 'Settings' },
+  { id: 'emergency', label: 'Emergency' } // ✅ Added Emergency tab
 ] as const;
 
+
 const ROLE_TAB_DEFAULTS: Record<string, TabId[]> = {
-  admin: ['dashboard', 'bookings', 'schedule', 'theaters', 'reports', 'users', 'settings'],
-  manager: ['dashboard', 'bookings', 'schedule', 'theaters', 'reports', 'settings'],
-  doctor: ['schedule', 'settings'],
+  admin: ['dashboard', 'bookings', 'schedule', 'theaters', 'reports', 'users', 'settings', 'emergency'],
+  manager: ['dashboard', 'bookings', 'schedule', 'theaters', 'reports', 'settings', 'emergency'],
+  doctor: ['schedule', 'settings', 'emergency'],
   receptionist: ['dashboard', 'bookings', 'settings'],
-  nurse: ['dashboard', 'schedule', 'settings'],
+  nurse: ['dashboard', 'schedule', 'settings', 'emergency'],
   viewer: ['settings']
 };
+
 
 
 

@@ -7,11 +7,10 @@ import {
   FileBarChart,
   Settings as SettingsIcon,
   Users,
-  ChevronRight,
-  ChevronLeft
+  AlertTriangle
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'bookings' | 'schedule' | 'theaters' | 'reports' | 'settings' | 'users';
+type Tab = 'dashboard' | 'bookings' | 'schedule' | 'theaters' | 'reports' | 'settings' | 'users'| 'emergency';
 
 interface NavigationProps {
   currentTab: Tab;
@@ -20,21 +19,21 @@ interface NavigationProps {
   setCollapsed: (collapsed: boolean) => void;
   showMobile: boolean;
   setShowMobile: (show: boolean) => void;
-  allowedTabs: Tab[]; // ✅ NEW PROP to control visibility
+  allowedTabs: Tab[];
 }
 
 const Navigation: React.FC<NavigationProps> = ({
   currentTab,
   setCurrentTab,
   collapsed,
-  setCollapsed,
   showMobile,
   setShowMobile,
-  allowedTabs // ✅ Destructured here
+  allowedTabs
 }) => {
   const navigationItems = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'bookings', name: 'Bookings', icon: Calendar },
+    { id: 'emergency', name: 'Emergency', icon: AlertTriangle },
     { id: 'schedule', name: 'Schedule', icon: Clock },
     { id: 'theaters', name: 'Theaters', icon: Building2 },
     { id: 'reports', name: 'Reports', icon: FileBarChart },
@@ -66,19 +65,11 @@ const Navigation: React.FC<NavigationProps> = ({
         `}
       >
         <div className="h-full bg-white shadow-sm flex flex-col">
-          {/* Collapse Button */}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex items-center justify-center h-16 w-full border-b border-gray-200 text-gray-400 hover:text-gray-500 hover:bg-gray-50"
-          >
-            {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
-
           {/* Navigation Items */}
           <nav className="flex-1 pt-4">
             <ul className="space-y-1 px-2">
               {navigationItems
-                .filter((item) => allowedTabs.includes(item.id as Tab)) // ✅ Only show allowed tabs
+                .filter((item) => allowedTabs.includes(item.id as Tab))
                 .map((item) => {
                   const Icon = item.icon;
                   return (

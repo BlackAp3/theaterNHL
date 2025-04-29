@@ -9,9 +9,9 @@ import Settings from './components/Settings';
 import Navigation from './components/Navigation';
 import Login from './components/Login';
 import UserManagement from './components/UserManagement';
-import { Logo } from './components/ui/logo';
+import Emergency from './components/EmergencyModule';
 
-type Tab = 'dashboard' | 'bookings' | 'schedule' | 'theaters' | 'reports' | 'settings' | 'users';
+type Tab = 'dashboard' | 'bookings' | 'schedule' | 'theaters' | 'reports' | 'settings' | 'users' |'emergency';
 
 const notifications = [
   {
@@ -30,7 +30,7 @@ const notifications = [
   },
 ];
 
-function App() {
+export default function App() {
   const [currentTab, setCurrentTab] = useState<Tab>('dashboard');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -116,6 +116,8 @@ function App() {
         return <Dashboard />;
       case 'bookings':
         return <Bookings />;
+      case 'emergency':
+        return <Emergency />;
       case 'schedule':
         return <Schedule />;
       case 'theaters':
@@ -136,92 +138,95 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm fixed w-full z-50">
-        <div className="h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div className="flex items-center">
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 lg:hidden"
-            >
-              {showMobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-            <div className="flex-shrink-0 flex items-center ml-4 lg:ml-0">
-              <Logo />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="notifications-trigger p-2 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 relative"
-            >
-              <span className="sr-only">View notifications</span>
-              <Bell className="h-6 w-6" />
-              {notifications.some(n => n.unread) && (
-                <div className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-400 ring-2 ring-white" />
-              )}
-            </button>
-
-            <div className="relative">
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-white shadow-sm">
+        <div className="mx-auto">
+          <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center">
               <button
-                onClick={() => setShowProfile(!showProfile)}
-                className="profile-trigger flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                type="button"
+                className="text-gray-500 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-brand-500"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               >
-                <div className="h-9 w-9 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-center text-sm font-medium">
-                  {user ? user.firstName.charAt(0).toUpperCase() : 'U'}
-                </div>
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user ? `${user.firstName} ${user.lastName}` : 'Unknown User'}
-                  </p>
-                  <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
-                </div>
-                <ChevronDown className="h-5 w-5 text-gray-400" />
+                {sidebarCollapsed ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="notifications-trigger p-2 rounded-full text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 relative"
+              >
+                <span className="sr-only">View notifications</span>
+                <Bell className="h-6 w-6" />
+                {notifications.some(n => n.unread) && (
+                  <div className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-400 ring-2 ring-white" />
+                )}
               </button>
 
-              {showProfile && (
-                <div className="profile-menu absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
-                  <div className="px-4 py-2 border-b border-gray-100">
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfile(!showProfile)}
+                  className="profile-trigger flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-center text-sm font-medium">
+                    {user ? user.firstName.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <div className="hidden md:block text-left">
                     <p className="text-sm font-medium text-gray-900">
-                      {user?.firstName} {user?.lastName}
+                      {user ? `${user.firstName} ${user.lastName}` : 'Unknown User'}
                     </p>
-                    <p className="text-xs text-gray-500">{user?.email}</p>
+                    <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
                   </div>
-                  <div className="py-1">
-                    <button
-                      onClick={() => {
-                        setCurrentTab('settings');
-                        setShowProfile(false);
-                      }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <SettingsIcon className="h-4 w-4 mr-3" />
-                      Settings
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCurrentTab('users');
-                        setShowProfile(false);
-                      }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      <User className="h-4 w-4 mr-3" />
-                      Profile
-                    </button>
+                  <ChevronDown className="h-5 w-5 text-gray-400" />
+                </button>
+
+                {showProfile && (
+                  <div className="profile-menu absolute right-0 mt-2 w-64 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 py-1 focus:outline-none">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">
+                        {user?.firstName} {user?.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setCurrentTab('settings');
+                          setShowProfile(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <SettingsIcon className="h-4 w-4 mr-3" />
+                        Settings
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCurrentTab('users');
+                          setShowProfile(false);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        <User className="h-4 w-4 mr-3" />
+                        Profile
+                      </button>
+                    </div>
+                    <div className="border-t border-gray-100 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        <LogOut className="h-4 w-4 mr-3" />
+                        Sign out
+                      </button>
+                    </div>
                   </div>
-                  <div className="border-t border-gray-100 pt-1">
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      <LogOut className="h-4 w-4 mr-3" />
-                      Sign out
-                    </button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -259,8 +264,7 @@ function App() {
         )}
       </header>
 
-      {/* Main Content */}
-      <div className="flex h-screen pt-16">
+      <div className="flex h-screen pt-0">
         <Navigation
           currentTab={currentTab}
           setCurrentTab={setCurrentTab}
@@ -271,7 +275,7 @@ function App() {
           allowedTabs={allowedTabs}
         />
         <main className="flex-1 overflow-auto bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {renderContent()}
           </div>
         </main>
@@ -279,5 +283,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
