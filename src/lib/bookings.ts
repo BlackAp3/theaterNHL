@@ -28,27 +28,7 @@ interface BookingData {
   location?: string;
 }
 
-interface EmergencyBookingData {
-  patient_id: string;
-  patient_first_name: string;
-  patient_last_name: string;
-  doctor: string;
-  theater: string;
-  operation_type: string;
-  start_time: string;
-  end_time: string;
-  emergency_reason: string;
-  date_of_birth: string;
-  gender: string;
-  phone_contact: string;
-  anesthesia_review: string;
-  classification?: string;
-  urgency_level?: string;
-  diagnosis: string;
-  special_requirements: string;
-  mode_of_payment: string;
-  patient_location: string;
-}
+
 
 // WebSocket connection
 let ws: WebSocket | null = null;
@@ -552,75 +532,9 @@ export const getOperationTypes = async () => {
   return res.json();
 };
 
-export async function escalateEmergencyBooking(bookingId: string, reason: string) {
-  const token = localStorage.getItem('token');
 
-  const response = await fetch(`${API_URL}/emergency/escalate/${bookingId}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ reason }),
-  });
 
-  const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to escalate emergency booking');
-  }
 
-  return data;
-}
 
-export async function cancelEmergencyBooking(id: string) {
-  const token = localStorage.getItem('token');
-
-  const response = await fetch(`${API_URL}/emergency/cancel/${id}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    }
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || 'Failed to cancel emergency booking');
-  }
-
-  return data;
-}
-
-export async function createEmergencyBooking(data: EmergencyBookingData) {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    throw new Error('Authentication token not found');
-  }
-
-  try {
-    const response = await fetch(`${API_URL}/emergency`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(data),
-    });
-
-    const responseData = await response.json();
-
-    if (!response.ok) {
-      throw new Error(responseData.error || 'Failed to create emergency booking');
-    }
-
-    return responseData;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Failed to create emergency booking: ${error.message}`);
-    }
-    throw error;
-  }
-}
 

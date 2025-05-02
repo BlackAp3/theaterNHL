@@ -94,132 +94,57 @@ router.post('/escalate/:id', async (req: Request, res: Response): Promise<void> 
   try {
     const connection = await pool.getConnection();
 
-    // Step 1: Validate original booking is eligible
-    const [existingRows] = await connection.query(
+    // Step 1: Fetch original booking
+    const [rows] = await connection.query(
       'SELECT * FROM bookings WHERE id = ? AND status IN (?, ?)',
       [bookingId, 'scheduled', 'pending']
     );
 
-    if ((existingRows as any[]).length === 0) {
+    if ((rows as any[]).length === 0) {
       connection.release();
       res.status(404).json({ error: 'Booking not found or not eligible for escalation' });
       return;
     }
 
-    // Step 2: Check for duplicate escalation
-    const [duplicateRows] = await connection.query(
-      'SELECT id FROM bookings WHERE overridden_booking_id = ? AND is_emergency = 1',
+    const original = (rows as any)[0];
+
+    // Step 2: Check for prior escalation
+    const [existingEmergencies] = await connection.query(
+      'SELECT id FROM emergency_bookings WHERE overridden_booking_id = ?',
       [bookingId]
     );
 
-    if ((duplicateRows as any[]).length > 0) {
+    if ((existingEmergencies as any[]).length > 0) {
       connection.release();
       res.status(409).json({ error: 'This booking has already been escalated' });
       return;
     }
 
-    const existing = (existingRows as any[])[0];
-
-    // Step 3: Mark original as rescheduled
+    // Step 3: Mark original booking as preempted
     await connection.query(
       'UPDATE bookings SET status = ? WHERE id = ?',
       ['preempted', bookingId]
     );
-    
 
-    // Step 4: Insert new emergency booking
+    // Step 4: Insert new emergency record into emergency_bookings
     const now = new Date();
     const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
 
-        // Step 3.5: Find overlapping future bookings in the same theater
-        const emergencyStart = now;
-        const emergencyEnd = oneHourLater;
-    
-        const [conflictingBookings] = await connection.query(
-          `SELECT * FROM bookings
-           WHERE theater = ? AND is_emergency = 0 AND status = 'scheduled'
-           AND start_time < ? AND end_time > ?
-           ORDER BY start_time ASC`,
-          [existing.theater, emergencyEnd, emergencyStart]
-        );
-    
-        console.log('Conflicting bookings:', conflictingBookings);
-    
-        // Step 3.6: Shift conflicting bookings forward
-let shiftStart = oneHourLater; // After emergency ends
-const shiftedBookingIds: number[] = [];
-
-for (const booking of conflictingBookings as any[]) {
-  const originalStart = new Date(booking.start_time);
-  const originalEnd = new Date(booking.end_time);
-  const durationMs = originalEnd.getTime() - originalStart.getTime(); // how long the surgery is
-
-  let proposedStart = new Date(oneHourLater); // start checking after emergency ends
-  let proposedEnd = new Date(proposedStart.getTime() + durationMs);
-
-  let conflictFound = true;
-
-  while (conflictFound) {
-    const [futureConflicts] = await connection.query(
-      `SELECT id FROM bookings
-       WHERE theater = ?
-         AND is_emergency = 0
-         AND status = 'scheduled'
-         AND (start_time < ? AND end_time > ?)
-         LIMIT 1`,
-      [existing.theater, proposedEnd, proposedStart]
-    );
-
-    if ((futureConflicts as any[]).length === 0) {
-      // No conflict — safe to move
-      conflictFound = false;
-    } else {
-      // Conflict found — shift by 30 minutes and retry
-      proposedStart = new Date(proposedStart.getTime() + 30 * 60 * 1000); // +30 min
-      proposedEnd = new Date(proposedStart.getTime() + durationMs);
-    }
-  }
-
-  // Update booking with safe new time
-  await connection.query(
-    'UPDATE bookings SET start_time = ?, end_time = ? WHERE id = ?',
-    [proposedStart, proposedEnd, booking.id]
-  );
-
-  shiftedBookingIds.push(booking.id);
-
-  console.log(`Smart Shifted Booking #${booking.id}: ${originalStart.toISOString()} → ${proposedStart.toISOString()}`);
-}
-
-
-    const [result] = await connection.query(
-      `INSERT INTO bookings (
-        patient_id, patient_first_name, patient_last_name, operation_type, doctor, theater,
-        start_time, end_time, status, date_of_birth, gender, phone_contact, anesthesia_review,
-        classification, urgency_level, diagnosis, special_requirements, mode_of_payment,
-        patient_location, is_emergency, emergency_reason, overridden_booking_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    const [insertResult] = await connection.query(
+      `INSERT INTO emergency_bookings (
+        patient_id, patient_first_name, patient_last_name, doctor, theater, operation_type,
+        start_time, end_time, status, emergency_reason, overridden_booking_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        existing.patient_id,
-        existing.patient_first_name,
-        existing.patient_last_name,
-        existing.operation_type,
-        existing.doctor,
-        existing.theater,
+        original.patient_id,
+        original.patient_first_name,
+        original.patient_last_name,
+        original.doctor,
+        original.theater,
+        original.operation_type,
         now,
         oneHourLater,
         'scheduled',
-        existing.date_of_birth,
-        existing.gender,
-        existing.phone_contact,
-        existing.anesthesia_review,
-        existing.classification,
-        existing.urgency_level,
-        existing.diagnosis,
-        existing.special_requirements,
-        existing.mode_of_payment,
-        existing.patient_location,
-        true,
         reason,
         bookingId
       ]
@@ -228,17 +153,17 @@ for (const booking of conflictingBookings as any[]) {
     connection.release();
 
     res.status(201).json({
-      message: 'Emergency operation created',
-      emergencyBookingId: (result as any).insertId,
-      overriddenBookingId: bookingId,
-      shiftedBookingIds: shiftedBookingIds,
+      message: 'Booking escalated to emergency',
+      emergencyId: (insertResult as any).insertId,
+      overriddenBookingId: bookingId
     });
 
-  } catch (error) {
-    console.error('Emergency escalation error:', error);
+  } catch (err) {
+    console.error('Error during escalation:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // Cancel an emergency and restore the original booking
 router.delete('/cancel/:id', async (req: Request, res: Response): Promise<void> => {
@@ -247,9 +172,8 @@ router.delete('/cancel/:id', async (req: Request, res: Response): Promise<void> 
   try {
     const connection = await pool.getConnection();
 
-    // 1. Fetch the emergency booking
     const [rows] = await connection.query(
-      'SELECT * FROM bookings WHERE id = ? AND is_emergency = 1',
+      'SELECT * FROM emergency_bookings WHERE id = ?',
       [emergencyId]
     );
 
@@ -259,29 +183,46 @@ router.delete('/cancel/:id', async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const emergencyBooking = (rows as any)[0];
+    const booking = (rows as any)[0];
 
-    // 2. Restore the original booking if exists
-    if (emergencyBooking.overridden_booking_id) {
+    if (booking.overridden_booking_id) {
+      // Escalated emergency: restore original and delete emergency record
       await connection.query(
         'UPDATE bookings SET status = ? WHERE id = ?',
-        ['scheduled', emergencyBooking.overridden_booking_id]
+        ['scheduled', booking.overridden_booking_id]
       );
+
+      await connection.query(
+        'DELETE FROM emergency_bookings WHERE id = ?',
+        [emergencyId]
+      );
+
+      res.status(200).json({
+        message: 'Escalated emergency cancelled and original booking restored',
+        restoredBookingId: booking.overridden_booking_id,
+      });
+
+    } else {
+      // Regular emergency: just soft-delete
+      // ✅ Step 1 fix: Just mark as cancelled, no soft delete
+await connection.query(
+  'UPDATE emergency_bookings SET status = ? WHERE id = ?',
+  ['cancelled', emergencyId]
+);
+
+
+      res.status(200).json({
+        message: 'Standalone emergency booking cancelled',
+      });
     }
 
-    // 3. Delete the emergency booking
-    await connection.query('DELETE FROM bookings WHERE id = ?', [emergencyId]);
-
     connection.release();
-    res.status(200).json({
-      message: 'Emergency booking cancelled and original booking restored',
-      restoredBookingId: emergencyBooking.overridden_booking_id || null,
-    });
   } catch (error) {
     console.error('Cancel emergency error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 router.get('/check-conflicts', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -380,13 +321,20 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 // routes/emergency.ts
 router.get('/list', async (req: Request, res: Response) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM emergency_bookings ORDER BY start_time DESC');
+    const [rows] = await pool.query(
+      `SELECT * FROM emergency_bookings 
+       WHERE is_deleted = FALSE 
+       ORDER BY start_time DESC`
+    );
+
     res.json(rows);
   } catch (error) {
     console.error('Error fetching emergency bookings:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
 
 router.put('/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
@@ -418,6 +366,38 @@ router.put('/:id', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+router.delete('/delete/:id', async (req: Request, res: Response): Promise<void> => {
+  const emergencyId = parseInt(req.params.id);
+
+  try {
+    const connection = await pool.getConnection();
+
+    const [rows] = await connection.query(
+      'SELECT * FROM emergency_bookings WHERE id = ?',
+      [emergencyId]
+    );
+
+    if ((rows as any[]).length === 0) {
+      connection.release();
+      res.status(404).json({ error: 'Emergency booking not found' });
+      return;
+    }
+
+    await connection.query(
+      'UPDATE emergency_bookings SET is_deleted = ? WHERE id = ?',
+      [true, emergencyId]
+    );
+
+    connection.release();
+    res.status(200).json({ message: 'Emergency booking soft deleted' });
+
+  } catch (error) {
+    console.error('Soft delete error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 
 export default router;

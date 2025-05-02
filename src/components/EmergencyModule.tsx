@@ -1,9 +1,8 @@
 import { Fragment, useEffect, useState } from 'react';
-import { cancelEmergencyBooking } from '../lib/bookings';
-import { formatTime } from '../lib/utils';
+import { formatTime,cn  } from '../lib/utils';
 import { ChevronUp,ChevronDown, UserCircle, Stethoscope, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import NewEmergencyForm from './NewEmergencyForm';
-import { getEmergencies } from '../lib/emergencies';
+import { getEmergencies,cancelEmergencyBooking, } from '../lib/emergencies';
 import EditEmergencyForm from './EditEmergencyForm';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
@@ -21,7 +20,9 @@ interface EmergencyBooking {
   emergency_reason: string;
   created_at: string;
   is_emergency: boolean;
-  notes: string;
+  status: string; //
+  is_deleted: boolean;
+
 }
 
 export default function EmergencyModule() {
@@ -38,13 +39,15 @@ export default function EmergencyModule() {
   const fetchEmergencies = async () => {
     try {
       const data = await getEmergencies();
-      setEmergencies(data);
+      const active = data.filter((b: EmergencyBooking) => b.is_deleted !== true);
+      setEmergencies(active);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load emergencies');
     } finally {
       setLoading(false);
     }
   };
+  
 
   useEffect(() => {
     fetchEmergencies();
@@ -282,10 +285,19 @@ export default function EmergencyModule() {
     </td>
     <td>{booking.patient_first_name} {booking.patient_last_name}</td>
     <td>
-      <span className="emergency-badge">
-        {booking.is_emergency ? 'Emergency' : 'Regular'}
-      </span>
-    </td>
+    <span
+      className={cn(
+        'px-2 py-1 rounded text-xs font-medium',
+        booking.status === 'cancelled'
+          ? 'bg-gray-200 text-gray-600'
+          : 'bg-green-100 text-green-700'
+      )}
+    >
+      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+    </span>
+  </td>
+
+    
     <td>{booking.operation_type}</td>
     <td>{formatTime(booking.start_time)} - {formatTime(booking.end_time)}</td>
     <td>

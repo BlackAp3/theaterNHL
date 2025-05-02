@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { createEmergencyBooking } from '../lib/bookings';
+import { createEmergencyBooking } from '../lib/emergencies';
 import Select from 'react-select';
 import { API_URL } from '../config';
 import { ArrowLeft, User, Stethoscope, ClipboardCheck } from 'lucide-react';

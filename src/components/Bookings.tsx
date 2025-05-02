@@ -13,8 +13,8 @@ import {
   FileText,
   Filter
 } from 'lucide-react';
-import { getBookings, updateBookingStatus, escalateEmergencyBooking } from '../lib/bookings';
-
+import { getBookings, updateBookingStatus,  } from '../lib/bookings';
+import {escalateEmergencyBooking} from '../lib/emergencies'
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
@@ -148,7 +148,7 @@ function Bookings() {
   };
 
   const filteredBookings = bookings.filter(booking => {
-    if (booking.status === 'rescheduled' || booking.is_emergency) return false;
+    if (['rescheduled', 'preempted'].includes(booking.status) || booking.is_emergency) return false;
 
     const searchString = searchTerm.toLowerCase();
     const matchesSearch = (
