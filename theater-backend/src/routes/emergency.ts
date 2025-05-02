@@ -128,7 +128,14 @@ router.post('/escalate/:id', async (req: Request, res: Response): Promise<void> 
 
     // Step 4: Insert new emergency record into emergency_bookings
     const now = new Date();
-    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
+
+const formattedStartTime = now.toISOString().slice(0, 19).replace('T', ' ');
+const formattedEndTime = oneHourLater.toISOString().slice(0, 19).replace('T', ' ');
+
+
+
 
     const [insertResult] = await connection.query(
       `INSERT INTO emergency_bookings (
@@ -142,8 +149,8 @@ router.post('/escalate/:id', async (req: Request, res: Response): Promise<void> 
         original.doctor,
         original.theater,
         original.operation_type,
-        now,
-        oneHourLater,
+        formattedStartTime,
+        formattedEndTime,
         'scheduled',
         reason,
         bookingId
@@ -276,36 +283,44 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const [result] = await pool.query(
-      `INSERT INTO emergency_bookings (
-        patient_id, patient_first_name, patient_last_name, doctor, theater, operation_type,
-        start_time, end_time, status, date_of_birth, gender, phone_contact, anesthesia_review,
-        classification, urgency_level, diagnosis, special_requirements, mode_of_payment,
-        patient_location, emergency_reason
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        patient_id,
-        patient_first_name,
-        patient_last_name || '',
-        doctor,
-        theater,
-        operation_type || 'Emergency Operation',
-        start_time,
-        end_time,
-        'scheduled',
-        null,
-        null,
-        null,
-        null,
-        'Unclassified',
-        'Critical',
-        'Pending Diagnosis',
-        'None',
-        'Emergency - To be billed',
-        'Emergency Room',
-        emergency_reason
-      ]
-    );
+    
+    
+// Just before the insert
+const formattedStartTime = new Date(start_time).toISOString().slice(0, 19).replace('T', ' ');
+const formattedEndTime = new Date(end_time).toISOString().slice(0, 19).replace('T', ' ');
+
+const [result] = await pool.query(
+  `INSERT INTO emergency_bookings (
+    patient_id, patient_first_name, patient_last_name, doctor, theater, operation_type,
+    start_time, end_time,
+    status, date_of_birth, gender, phone_contact, anesthesia_review,
+    classification, urgency_level, diagnosis, special_requirements, mode_of_payment,
+    patient_location, emergency_reason
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [
+    patient_id,
+    patient_first_name,
+    patient_last_name || '',
+    doctor,
+    theater,
+    operation_type || 'Emergency Operation',
+    formattedStartTime,
+    formattedEndTime,
+    'scheduled',
+    null,
+    null,
+    null,
+    null,
+    'Unclassified',
+    'Critical',
+    'Pending Diagnosis',
+    'None',
+    'Emergency - To be billed',
+    'Emergency Room',
+    emergency_reason
+  ]
+);
+
     
 
     res.status(201).json({
@@ -341,24 +356,27 @@ router.put('/:id', async (req: Request, res: Response) => {
   const updatedData = req.body;
 
   try {
-    await pool.query(
-      `UPDATE emergency_bookings SET
-        patient_first_name = ?, patient_last_name = ?, patient_id = ?, doctor = ?, theater = ?, operation_type = ?,
-        start_time = ?, end_time = ?, emergency_reason = ?
-      WHERE id = ?`,
-      [
-        updatedData.patient_first_name,
-        updatedData.patient_last_name,
-        updatedData.patient_id,
-        updatedData.doctor,
-        updatedData.theater,
-        updatedData.operation_type,
-        updatedData.start_time,
-        updatedData.end_time,
-        updatedData.emergency_reason,
-        id
-      ]
-    );
+    const formattedStartTime = new Date(updatedData.start_time).toISOString().slice(0, 19).replace('T', ' ');
+const formattedEndTime = new Date(updatedData.end_time).toISOString().slice(0, 19).replace('T', ' ');
+
+await pool.query(
+  `UPDATE emergency_bookings SET
+    patient_first_name = ?, patient_last_name = ?, patient_id = ?, doctor = ?, theater = ?, operation_type = ?,
+    start_time = ?, end_time = ?, emergency_reason = ?
+  WHERE id = ?`,
+  [
+    updatedData.patient_first_name,
+    updatedData.patient_last_name,
+    updatedData.patient_id,
+    updatedData.doctor,
+    updatedData.theater,
+    updatedData.operation_type,
+    formattedStartTime,
+    formattedEndTime,
+    updatedData.emergency_reason,
+    id
+  ]
+);
 
     res.json({ message: 'Emergency updated successfully' });
   } catch (error) {
