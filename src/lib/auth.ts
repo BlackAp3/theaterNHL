@@ -2,6 +2,21 @@ import axios from 'axios';
 import type { User, UserDetails, Permissions } from '../types/user';
 import { API_URL } from '../config'; // ✅ Use env-based config
 
+// Add axios interceptor for handling auth errors
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Clear auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Redirect to login
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // -------------------------------------
 // GET ALL USERS
 // -------------------------------------

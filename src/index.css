@@ -31,8 +31,24 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium text-gray-900;
+  }
+
+  h1 {
+    @apply text-2xl;
+  }
+
+  h2 {
+    @apply text-xl;
+  }
+
+  h3 {
+    @apply text-lg;
   }
 }
 
@@ -122,5 +138,111 @@
 
   .table tr {
     @apply hover:bg-gray-50 transition-colors;
+  }
+
+  /* New styles matching sidebar */
+  .nav-item {
+    @apply w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg
+           transition-colors duration-150 ease-in-out;
+  }
+
+  .nav-item-active {
+    @apply bg-gradient-to-r from-brand-50 to-accent-50 text-brand-600;
+  }
+
+  .nav-item-inactive {
+    @apply text-gray-600 hover:bg-gray-50;
+  }
+
+  .section-header {
+    @apply text-2xl font-bold bg-gradient-to-r from-brand-600 to-accent-600 bg-clip-text text-transparent;
+  }
+
+  .section-subheader {
+    @apply mt-1 text-sm text-gray-500;
+  }
+
+  .content-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden;
+  }
+
+  .content-card-header {
+    @apply px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100;
+  }
+
+  .content-card-body {
+    @apply p-6;
+  }
+
+  .content-card-footer {
+    @apply px-6 py-4 bg-gray-50 border-t border-gray-100;
+  }
+
+  /* Emergency-specific styles */
+  .emergency-header {
+    @apply text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent;
+  }
+
+  .emergency-subheader {
+    @apply mt-1 text-sm text-gray-500;
+  }
+
+  .btn-emergency {
+    @apply px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 
+           text-white rounded-lg font-medium shadow-sm 
+           hover:from-red-700 hover:to-pink-700 
+           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 
+           transition-all transform hover:scale-[1.02];
+  }
+
+  .btn-emergency-secondary {
+    @apply px-4 py-2 bg-white text-red-700 rounded-lg font-medium 
+           border border-red-200 shadow-sm 
+           hover:bg-red-50 hover:border-red-300 
+           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 
+           transition-all;
+  }
+
+  .input-field-emergency {
+    @apply block w-full rounded-lg border-gray-200 shadow-sm 
+           focus:border-red-500 focus:ring-red-500 
+           placeholder:text-gray-400 
+           transition-colors;
+  }
+
+  .emergency-card {
+    @apply bg-white rounded-lg shadow-sm border border-red-100 overflow-hidden;
+  }
+
+  .emergency-card-header {
+    @apply px-6 py-4 bg-gradient-to-r from-red-50 to-white border-b border-red-100;
+  }
+
+  .emergency-card-body {
+    @apply p-6;
+  }
+
+  .emergency-card-footer {
+    @apply px-6 py-4 bg-red-50 border-t border-red-100;
+  }
+
+  .emergency-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800;
+  }
+
+  .emergency-table {
+    @apply min-w-full divide-y divide-red-100;
+  }
+
+  .emergency-table th {
+    @apply px-6 py-3 text-left text-xs font-medium text-red-600 uppercase tracking-wider;
+  }
+
+  .emergency-table td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900;
+  }
+
+  .emergency-table tr {
+    @apply hover:bg-red-50 transition-colors;
   }
 }

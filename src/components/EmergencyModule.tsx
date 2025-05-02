@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { cancelEmergencyBooking } from '../lib/bookings';
-import { Badge } from './ui/badge';
 import { formatTime } from '../lib/utils';
-import { AlertTriangle, ChevronDown, ChevronUp, UserCircle, Stethoscope, FileText, ChevronLeft, MoreHorizontal, ChevronRight } from 'lucide-react';
+import { ChevronUp,ChevronDown, UserCircle, Stethoscope, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import NewEmergencyForm from './NewEmergencyForm';
 import { getEmergencies } from '../lib/emergencies';
 import EditEmergencyForm from './EditEmergencyForm';
@@ -22,12 +21,13 @@ interface EmergencyBooking {
   emergency_reason: string;
   created_at: string;
   is_emergency: boolean;
+  notes: string;
 }
 
 export default function EmergencyModule() {
   const [emergencies, setEmergencies] = useState<EmergencyBooking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [showEmergencyForm, setShowEmergencyForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingBooking, setEditingBooking] = useState<EmergencyBooking | null>(null);
@@ -123,9 +123,10 @@ export default function EmergencyModule() {
                   <div className="font-medium text-gray-900">{booking.operation_type}</div>
                 </div>
                 <div>
-                  <div className="text-gray-500">Doctor</div>
-                  <div className="font-medium text-gray-900">{booking.doctor}</div>
-                </div>
+                <div className="text-gray-500">Doctor</div>
+                <div className="font-medium text-gray-900 break-words max-w-full truncate sm:whitespace-normal">
+                 {booking.doctor}</div> 
+                 </div>
                 <div>
                   <div className="text-gray-500">Theater</div>
                   <div className="font-medium text-gray-900">{booking.theater}</div>
@@ -152,7 +153,9 @@ export default function EmergencyModule() {
             <Card.Body className="space-y-4">
               <div>
                 <div className="text-gray-500">Emergency Reason</div>
-                <div className="font-medium text-gray-900 mt-1">{booking.emergency_reason}</div>
+                <div className="font-medium text-gray-900 break-words whitespace-pre-wrap max-w-full">
+  {booking.emergency_reason || '—'}
+</div>
               </div>
               <div>
                 <div className="text-gray-500">Created At</div>
@@ -167,249 +170,217 @@ export default function EmergencyModule() {
     );
   };
 
+  const paginatedEmergencies = emergencies
+  .filter((booking) =>
+    booking.patient_first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    booking.patient_last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    booking.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    booking.operation_type.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+  .slice((currentPage - 1) * emergenciesPerPage, currentPage * emergenciesPerPage);
+
+
   return (
     <div className="space-y-6">
-  
-      {/* Priority 1: Edit Emergency Form */}
-      {editingBooking ? (
-        <EditEmergencyForm
-          booking={editingBooking}
-          onSuccess={() => {
-            setEditingBooking(null);
-            fetchEmergencies();
-          }}
-          onCancel={() => setEditingBooking(null)}
-        />
-      ) : showEmergencyForm ? (
-        /* Priority 2: New Emergency Form */
-        <NewEmergencyForm
-          onSuccess={() => {
-            setShowEmergencyForm(false);
-            fetchEmergencies();
-          }}
-          onCancel={() => setShowEmergencyForm(false)}
-        />
-      ) : (
-        <>
-          {/* Priority 3: Emergency Table */}
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
-              Emergency Operations
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              List of escalated surgical operations requiring urgent intervention
-            </p>
-  
-            <button
-              onClick={() => setShowEmergencyForm(true)}
-              className="mt-4 inline-flex items-center px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition text-sm"
-            >
-              ➕ New Emergency
-            </button>
-          </div>
-  
-          <div className="flex justify-between items-center my-4">
-            <input
-              type="text"
-              placeholder="Search emergencies..."
-              className="w-full md:w-1/3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-red-400"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-  
-          <div className="overflow-x-auto">
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-                <span className="ml-2 text-gray-600">Loading emergencies...</span>
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <AlertTriangle className="h-5 w-5 text-red-600" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-red-800">Error loading emergencies</h3>
-                      <div className="mt-2 text-sm text-red-700">{error}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="w-8 px-6 py-3"></th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Patient
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Patient ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Doctor
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Operation
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Theater
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Start - End
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {emergencies
-                    .filter((booking: EmergencyBooking) =>
-                      booking.patient_first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      booking.patient_last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      booking.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      booking.operation_type.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .slice((currentPage - 1) * emergenciesPerPage, currentPage * emergenciesPerPage)
-                    .map((booking: EmergencyBooking) => (
-                      <React.Fragment key={booking.id}>
-                        <tr
-                          className="hover:bg-gray-50 transition-colors cursor-pointer"
-                          onClick={() => toggleRowExpansion(booking.id)}
-                        >
-                          <td className="px-6 py-4">
-                            {expandedRows.has(booking.id) ? (
-                              <ChevronUp className="h-5 w-5 text-gray-400" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5 text-gray-400" />
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <div className="h-10 w-10 flex-shrink-0">
-                                <div className="h-full w-full rounded-full bg-gradient-to-r from-red-100 to-pink-100 flex items-center justify-center text-red-600 font-medium">
-                                  {booking.patient_first_name[0]}{booking.patient_last_name[0]}
-                                </div>
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
-                                  {booking.patient_first_name} {booking.patient_last_name}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 font-mono text-red-700">{booking.patient_id}</td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">{booking.doctor}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">{booking.operation_type}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-500">{booking.theater}</div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
-                              {formatTime(booking.start_time)} – {formatTime(booking.end_time)}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 space-x-2">
-                            <Badge variant="error" size="sm" className="inline-flex items-center gap-1">
-                              <AlertTriangle className="h-4 w-4" /> Emergency
-                            </Badge>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCancel(booking.id);
-                              }}
-                              className="ml-2 inline-flex items-center px-2 py-1 rounded bg-red-600 text-white text-xs hover:bg-red-700 transition"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(booking);
-                              }}
-                              className="ml-2 inline-flex items-center px-2 py-1 rounded bg-blue-600 text-white text-xs hover:bg-blue-700 transition"
-                            >
-                              Edit
-                            </button>
-                          </td>
-                        </tr>
-                        {expandedRows.has(booking.id) && (
-                          <tr>
-                            {renderExpandedDetails(booking)}
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </>
-      )}
+      <div>
+        <h1 className="emergency-header">Emergency Bookings</h1>
+        <p className="emergency-subheader">Manage urgent and critical appointments</p>
+      </div>
 
-      <Card.Footer className="bg-gray-50">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="text-sm text-gray-700">
-            Showing {(currentPage - 1) * emergenciesPerPage + 1} to{' '}
-            {Math.min(currentPage * emergenciesPerPage, emergencies.length)} of{' '}
-            {emergencies.length} entries
-          </div>
-          <div className="flex items-center justify-end space-x-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              leftIcon={<ChevronLeft className="h-4 w-4" />}
-            >
-              Previous
-            </Button>
-            <div className="flex items-center space-x-2">
-              {Array.from({ length: Math.ceil(emergencies.length / emergenciesPerPage) }, (_, i) => i + 1)
-                .filter(page => {
-                  const totalPages = Math.ceil(emergencies.length / emergenciesPerPage);
-                  if (totalPages <= 5) return true;
-                  if (page === 1 || page === totalPages) return true;
-                  if (Math.abs(page - currentPage) <= 1) return true;
-                  return false;
-                })
-                .map((page, idx, arr) => (
-                  <React.Fragment key={page}>
-                    {idx > 0 && arr[idx - 1] !== page - 1 && (
-                      <span className="text-gray-500">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </span>
-                    )}
-                    <Button
-                      variant={currentPage === page ? 'primary' : 'secondary'}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                    >
-                      {page}
-                    </Button>
-                  </React.Fragment>
-                ))}
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.min(Math.ceil(emergencies.length / emergenciesPerPage), p + 1))}
-              disabled={currentPage === Math.ceil(emergencies.length / emergenciesPerPage)}
-              rightIcon={<ChevronRight className="h-4 w-4" />}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      </Card.Footer>
+      <div className="emergency-card">
+  <div className="emergency-card-header">
+    <div className="flex justify-between items-center">
+    <h2 className="text-lg font-semibold text-red-700">
+  {showEmergencyForm
+    ? 'New Emergency Booking'
+    : editingBooking
+    ? 'Edit Emergency Booking'
+    : 'Quick Actions'}
+</h2>
+
+      {!showEmergencyForm && (
+        <button
+          onClick={() => setShowEmergencyForm(true)}
+          className="btn-emergency"
+        >
+          New Emergency Booking
+        </button>
+      )}
+    </div>
+  </div>
+
+  <div className="emergency-card-body">
+  {showEmergencyForm ? (
+    <NewEmergencyForm
+      onSuccess={() => {
+        setShowEmergencyForm(false);
+        fetchEmergencies();
+      }}
+      onCancel={() => setShowEmergencyForm(false)}
+    />
+  ) : editingBooking ? (
+    <EditEmergencyForm
+      booking={editingBooking}
+      onSubmit={() => {
+        setEditingBooking(null);
+        fetchEmergencies();
+      }}
+      onCancel={() => setEditingBooking(null)}
+    />
+  ) : (
+    <>
+      {/* Search + Table */}
+      <div className="flex gap-4 mb-4">
+        <input
+          type="text"
+          placeholder="Search emergency bookings..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="input-field-emergency"
+        />
+        <button onClick={() => fetchEmergencies()} className="btn-emergency-secondary">
+          Search
+        </button>
+      </div>
+
+      <div className="overflow-x-auto">
+      {loading ? (
+    <div className="text-center text-gray-500 py-10">Loading emergency bookings...</div>
+  ) : (
+        <table className="emergency-table">
+          <thead>
+            <tr>
+              <th></th> {/* 👈 This is the new cell for chevrons */}
+              <th>Patient</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {emergencies
+              .filter((booking: EmergencyBooking) =>
+                booking.patient_first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                booking.patient_last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                booking.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                booking.operation_type.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .slice((currentPage - 1) * emergenciesPerPage, currentPage * emergenciesPerPage)
+              .map((booking: EmergencyBooking) => (
+                <Fragment key={booking.id}>
+  <tr
+    className="hover:bg-gray-50 cursor-pointer transition-colors"
+    onClick={() => toggleRowExpansion(booking.id)}
+  >
+    <td className="px-4">
+      {expandedRows.has(booking.id) ? (
+        <ChevronUp className="h-5 w-5 text-gray-400" />
+      ) : (
+        <ChevronDown className="h-5 w-5 text-gray-400" />
+      )}
+    </td>
+    <td>{booking.patient_first_name} {booking.patient_last_name}</td>
+    <td>
+      <span className="emergency-badge">
+        {booking.is_emergency ? 'Emergency' : 'Regular'}
+      </span>
+    </td>
+    <td>{booking.operation_type}</td>
+    <td>{formatTime(booking.start_time)} - {formatTime(booking.end_time)}</td>
+    <td>
+      <div className="flex gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEdit(booking);
+          }}
+          className="btn-emergency-secondary"
+        >
+          Edit
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCancel(booking.id);
+          }}
+          className="btn-emergency-secondary"
+        >
+          Cancel
+        </button>
+      </div>
+    </td>
+  </tr>
+
+  {expandedRows.has(booking.id) && (
+    <tr>{renderExpandedDetails(booking)}</tr>
+  )}
+
+{paginatedEmergencies.length === 0 && !loading && (
+  <tr>
+    <td colSpan={6} className="text-center text-gray-500 py-6">
+      No emergency bookings found.
+    </td>
+  </tr>
+)}
+
+</Fragment>
+
+              ))}
+
+          </tbody>
+        </table>
+          )}
+
+        <div className="flex justify-between items-center mt-4">
+  <div className="text-sm text-gray-600">
+    Showing {(currentPage - 1) * emergenciesPerPage + 1} to{' '}
+    {Math.min(currentPage * emergenciesPerPage, emergencies.length)} of {emergencies.length} entries
+  </div>
+  <div className="flex items-center gap-2">
+  <Button
+  size="sm"
+  variant="secondary"
+  onClick={() => {
+    setExpandedRows(new Set()); // Collapse any expanded rows
+    setCurrentPage(p => Math.max(1, p - 1));
+  }}
+  disabled={currentPage === 1}
+>
+  <ChevronLeft className="w-4 h-4" />
+  Previous
+</Button>
+
+    <span className="text-sm">
+      Page {currentPage} of {Math.ceil(emergencies.length / emergenciesPerPage)}
+    </span>
+    <Button
+      size="sm"
+      variant="secondary"
+      onClick={() => {
+        setExpandedRows(new Set());
+        setCurrentPage(p => Math.min(Math.ceil(emergencies.length / emergenciesPerPage), p + 1));
+      }}
+      
+      disabled={currentPage === Math.ceil(emergencies.length / emergenciesPerPage)}
+    >
+      Next
+      <ChevronRight className="w-4 h-4" />
+    </Button>
+  </div>
+</div>
+  
+      </div>
+    </>
+  )}
+</div>
+
+</div>
+
+
+
+
+
     </div>
   );
 }

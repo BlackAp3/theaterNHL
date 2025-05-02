@@ -6,24 +6,18 @@ import {
   ChevronRight, 
   MoreHorizontal,
   Edit2, 
-  
-  
-   
   Stethoscope, 
- 
   ChevronDown,
   ChevronUp,
   UserCircle,
   FileText,
-  Filter,
-  X
+  Filter
 } from 'lucide-react';
 import { getBookings, updateBookingStatus, escalateEmergencyBooking } from '../lib/bookings';
 
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
-import { Skeleton } from './ui/skeleton';
 import { cn, formatDate, formatTime } from '../lib/utils';
 import BookingForm from './BookingForm';
 import EmergencyEscalationModal from './ui/EmergencyEscalationModal';
@@ -89,8 +83,6 @@ function Bookings() {
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [showStatusDropdown, setShowStatusDropdown] = useState<string | null>(null);
@@ -99,8 +91,7 @@ function Bookings() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const bookingsPerPage = 10;
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
-const [escalationBooking, setEscalationBooking] = useState<Booking | null>(null);
-
+  const [escalationBooking, setEscalationBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -121,9 +112,7 @@ const [escalationBooking, setEscalationBooking] = useState<Booking | null>(null)
       const data = await getBookings();
       setBookings(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch bookings');
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch bookings:', err);
     }
   };
 
@@ -393,210 +382,153 @@ const [escalationBooking, setEscalationBooking] = useState<Booking | null>(null)
   
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Operation Bookings
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage and track all surgical operations
-          </p>
+    <div className="h-screen overflow-hidden">
+      <div className="space-y-6 h-full p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="section-header">Operation Bookings</h1>
+            <p className="section-subheader">Manage and track all surgical operations</p>
+          </div>
+          <Button
+            onClick={() => setShowForm(true)}
+            leftIcon={<Plus className="h-5 w-5" />}
+            className="btn-primary"
+          >
+            New Booking
+          </Button>
         </div>
-        <Button
-          onClick={() => setShowForm(true)}
-          leftIcon={<Plus className="h-5 w-5" />}
-        >
-          New Booking
-        </Button>
-      </div>
 
-      <Card variant="hover">
-        <Card.Header className="bg-gradient-to-r from-gray-50 to-white">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search bookings..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                leftIcon={<Filter className="h-5 w-5" />}
-                onClick={() => setShowMobileFilters(true)}
-                className="sm:hidden"
-              >
-                Filters
-              </Button>
-              <div className="hidden sm:flex flex-wrap gap-2">
-                {Object.entries(statusMap).map(([key, value]) => (
-                  <Badge
-                    key={key}
-                    variant={value.variant}
-                    className={cn(
-                      'cursor-pointer transition-all hover:scale-105',
-                      activeFilters.includes(key) && 'ring-2 ring-offset-2 ring-indigo-500'
-                    )}
-                    onClick={() => setActiveFilters(prev =>
-                      prev.includes(key)
-                        ? prev.filter(f => f !== key)
-                        : [...prev, key]
-                    )}
-                  >
-                    {value.icon} {value.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Card.Header>
-
-        {/* Mobile Filters Dialog */}
-        {showMobileFilters && (
-          <div className="fixed inset-0 z-50 sm:hidden">
-            <div className="absolute inset-0 bg-black bg-opacity-25" onClick={() => setShowMobileFilters(false)} />
-            <div className="absolute right-0 top-0 h-full w-64 bg-white shadow-xl">
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Filters</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowMobileFilters(false)}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
+        <Card variant="hover" className="flex-1 flex flex-col h-[calc(100vh-10rem)] overflow-hidden">
+          <Card.Header className="bg-gradient-to-r from-gray-50 to-white flex-none">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <div className="relative w-[300px]">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search bookings..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="input-field pl-8 pr-3 py-1.5 text-sm"
+                  />
                 </div>
+                <Button
+                  variant="secondary"
+                  leftIcon={<Filter className="h-4 w-4" />}
+                  onClick={() => setShowMobileFilters(!showMobileFilters)}
+                  className="whitespace-nowrap h-8"
+                  size="sm"
+                >
+                  Filters
+                </Button>
               </div>
-              <div className="p-4 space-y-2">
-                {Object.entries(statusMap).map(([key, value]) => (
-                  <Badge
-                    key={key}
-                    variant={value.variant}
-                    className={cn(
-                      'w-full justify-center cursor-pointer transition-all hover:scale-105',
-                      activeFilters.includes(key) && 'ring-2 ring-offset-2 ring-indigo-500'
-                    )}
-                    onClick={() => setActiveFilters(prev =>
-                      prev.includes(key)
-                        ? prev.filter(f => f !== key)
-                        : [...prev, key]
-                    )}
-                  >
-                    {value.icon} {value.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {error ? (
-          <Card.Body>
-            <div className="text-center text-red-600">
-              <span className="mr-2">❌</span>
-              {error}
-            </div>
-          </Card.Body>
-        ) : loading ? (
-          <Card.Body>
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center space-x-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-4 w-24" />
+              {showMobileFilters && (
+                <div className="content-card">
+                  <div className="content-card-body">
+                    <div className="text-sm font-medium text-gray-700">Filter by Status:</div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {Object.entries(statusMap).map(([key, value]) => (
+                        <Badge
+                          key={key}
+                          variant={value.variant}
+                          className={cn(
+                            'cursor-pointer transition-all hover:scale-105',
+                            activeFilters.includes(key) && 'ring-2 ring-offset-2 ring-brand-500'
+                          )}
+                          onClick={() => setActiveFilters(prev =>
+                            prev.includes(key)
+                              ? prev.filter(f => f !== key)
+                              : [...prev, key]
+                          )}
+                        >
+                          {value.icon} {value.label}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
-          </Card.Body>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="w-8 px-6 py-3"></th>
-              
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Patient
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Operation
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date & Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Doctor
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Theater
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {currentBookings.map((booking) => (
-                    <React.Fragment key={booking.id}>
-                      <tr
-                        className="hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => toggleRowExpansion(booking.id)}
-                      >
-                        <td className="px-6 py-4">
-                          {expandedRows.has(booking.id) ? (
-                            <ChevronUp className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 flex-shrink-0">
-                              <div className="h-full w-full rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-600 font-medium">
-                                {booking.patient_first_name[0]}{booking.patient_last_name[0]}
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {booking.patient_first_name} {booking.patient_last_name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {booking.phone_contact}
-                              </div>
+          </Card.Header>
+
+          <div className="flex-1 overflow-auto scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-indigo-200 hover:scrollbar-thumb-indigo-300">
+            <table className="table">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th className="w-8 px-3 py-3"></th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[25%]">
+                    Patient
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
+                    Operation
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                    Date & Time
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                    Doctor
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
+                    Theater
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">
+                    Status
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentBookings.map((booking) => (
+                  <React.Fragment key={booking.id}>
+                    <tr
+                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => toggleRowExpansion(booking.id)}
+                    >
+                      <td className="px-6 py-4">
+                        {expandedRows.has(booking.id) ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0">
+                            <div className="h-full w-full rounded-full bg-gradient-to-r from-brand-100 to-accent-100 flex items-center justify-center text-brand-600 font-medium">
+                              {booking.patient_first_name[0]}{booking.patient_last_name[0]}
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{booking.operation_type}</div>
-                          <div className="text-xs text-gray-500">{booking.classification}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{formatDate(booking.start_time)}</div>
-                          <div className="text-xs text-gray-500">{formatTime(booking.start_time)}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{booking.doctor}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-500">{booking.theater}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {renderStatusBadge(booking.id, booking.status)}
-                        </td>
-                        <td className="px-6 py-4 text-right">
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {booking.patient_first_name} {booking.patient_last_name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {booking.phone_contact}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{booking.operation_type}</div>
+                        <div className="text-xs text-gray-500">{booking.classification}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{formatDate(booking.start_time)}</div>
+                        <div className="text-xs text-gray-500">{formatTime(booking.start_time)}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">{booking.doctor}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-500">{booking.theater}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {renderStatusBadge(booking.id, booking.status)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex flex-col items-end space-y-1">
                           <Button
                             variant="secondary"
                             size="sm"
@@ -609,112 +541,113 @@ const [escalationBooking, setEscalationBooking] = useState<Booking | null>(null)
                             Edit
                           </Button>
                           <Button
-  variant="outline"
-  className="text-red-600 border-red-600 hover:bg-red-50"
-  size="sm"
-  onClick={(e) => {
-    e.stopPropagation();
-    setEscalationBooking(booking); // booking: the row's data
-    setShowEmergencyModal(true);   // trigger modal open
-  }}
->
-  Escalate 🚨
-</Button>
-
-
-                        </td>
-                      </tr>
-                      {expandedRows.has(booking.id) && (
-                        <tr>
-                          {renderExpandedDetails(booking)}
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-              <EmergencyEscalationModal
-  isOpen={showEmergencyModal}
-  patientName={`${escalationBooking?.patient_first_name} ${escalationBooking?.patient_last_name}`}
-  onClose={() => {
-    setShowEmergencyModal(false);
-    setEscalationBooking(null);
-  }}
-  onSubmit={async (reason) => {
-    if (!escalationBooking) return;
-
-    try {
-      await escalateEmergencyBooking(escalationBooking.id, reason);
-      alert('Escalated to emergency successfully');
-      fetchBookings(); // Refresh table
-    } catch (err: any) {
-      alert(err.message || 'Escalation failed');
-    } finally {
-      setShowEmergencyModal(false);
-      setEscalationBooking(null);
-    }
-  }}
-/>
-
-            </div>
-
-            <Card.Footer className="bg-gray-50">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="text-sm text-gray-700">
-                  Showing {(currentPage - 1) * bookingsPerPage + 1} to{' '}
-                  {Math.min(currentPage * bookingsPerPage, filteredBookings.length)} of{' '}
-                  {filteredBookings.length} entries
-                </div>
-                <div className="flex items-center justify-end space-x-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    leftIcon={<ChevronLeft className="h-4 w-4" />}
-                  >
-                    Previous
-                  </Button>
-                  <div className="flex items-center space-x-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter(page => {
-                        if (totalPages <= 5) return true;
-                        if (page === 1 || page === totalPages) return true;
-                        if (Math.abs(page - currentPage) <= 1) return true;
-                        return false;
-                      })
-                      .map((page, idx, arr) => (
-                        <React.Fragment key={page}>
-                          {idx > 0 && arr[idx - 1] !== page - 1 && (
-                            <span className="text-gray-500">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </span>
-                          )}
-                          <Button
-                            variant={currentPage === page ? 'primary' : 'secondary'}
+                            variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPage(page)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEscalationBooking(booking);
+                              setShowEmergencyModal(true);
+                            }}
+                            className="text-red-600 border-red-600 hover:bg-red-50 hover:text-red-700 px-2 py-1 text-xs"
                           >
-                            {page}
+                            <span className="flex items-center gap-1">
+                              <span>Escalate</span>
+                              <span>🚨</span>
+                            </span>
                           </Button>
-                        </React.Fragment>
-                      ))}
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    rightIcon={<ChevronRight className="h-4 w-4" />}
-                  >
-                    Next
-                  </Button>
-                </div>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedRows.has(booking.id) && (
+                      <tr>
+                        {renderExpandedDetails(booking)}
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <Card.Footer className="bg-gray-50 flex-none">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="text-sm text-gray-700">
+                Showing {(currentPage - 1) * bookingsPerPage + 1} to{' '}
+                {Math.min(currentPage * bookingsPerPage, filteredBookings.length)} of{' '}
+                {filteredBookings.length} entries
               </div>
-            </Card.Footer>
-          </>
-        )}
-      </Card>
+              <div className="flex items-center justify-end space-x-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  leftIcon={<ChevronLeft className="h-4 w-4" />}
+                >
+                  Previous
+                </Button>
+                <div className="flex items-center space-x-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      if (totalPages <= 5) return true;
+                      if (page === 1 || page === totalPages) return true;
+                      if (Math.abs(page - currentPage) <= 1) return true;
+                      return false;
+                    })
+                    .map((page, idx, arr) => (
+                      <React.Fragment key={page}>
+                        {idx > 0 && arr[idx - 1] !== page - 1 && (
+                          <span className="text-gray-500">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </span>
+                        )}
+                        <Button
+                          variant={currentPage === page ? 'primary' : 'secondary'}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      </React.Fragment>
+                    ))}
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  rightIcon={<ChevronRight className="h-4 w-4" />}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </Card.Footer>
+        </Card>
+
+        <EmergencyEscalationModal
+          isOpen={showEmergencyModal}
+          patientName={`${escalationBooking?.patient_first_name} ${escalationBooking?.patient_last_name}`}
+          onClose={() => {
+            setShowEmergencyModal(false);
+            setEscalationBooking(null);
+          }}
+          onSubmit={async (reason) => {
+            if (!escalationBooking) return;
+
+            try {
+              await escalateEmergencyBooking(escalationBooking.id, reason);
+              alert('Escalated to emergency successfully');
+              fetchBookings(); // Refresh table
+            } catch (err: any) {
+              alert(err.message || 'Escalation failed');
+            } finally {
+              setShowEmergencyModal(false);
+              setEscalationBooking(null);
+            }
+          }}
+        />
+      </div>
     </div>
   );
   

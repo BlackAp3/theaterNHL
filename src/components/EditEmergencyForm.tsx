@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { updateEmergencyBooking } from '../lib/emergencies';
 import { ArrowLeft } from 'lucide-react';
 
-interface EmergencyBooking {
+interface FormData {
   id: string;
   patient_first_name: string;
   patient_last_name: string;
@@ -16,33 +16,48 @@ interface EmergencyBooking {
 }
 
 interface EditEmergencyFormProps {
-  booking: EmergencyBooking;
-  onSuccess: () => void;
+  booking: FormData;
+  onSubmit: (data: FormData) => void;
   onCancel: () => void;
 }
 
-export default function EditEmergencyForm({ booking, onSuccess, onCancel }: EditEmergencyFormProps) {
-  const [formData, setFormData] = useState({
-    patient_first_name: booking.patient_first_name || '',
-    patient_last_name: booking.patient_last_name || '',
-    patient_id: booking.patient_id || '',
-    doctor: booking.doctor || '',
-    theater: booking.theater || '',
-    operation_type: booking.operation_type || '',
-    start_time: booking.start_time || '',
-    end_time: booking.end_time || '',
-    emergency_reason: booking.emergency_reason || '',
-  });
+const operationTypes = [
+  'Emergency Surgery',
+  'Urgent Care',
+  'Critical Procedure',
+  'Immediate Treatment',
+];
+
+const doctors = [
+  'Dr. Smith',
+  'Dr. Johnson',
+  'Dr. Williams',
+  'Dr. Brown',
+  'Dr. Davis',
+];
+
+const theaters = [
+  'Theater 1',
+  'Theater 2',
+  'Theater 3',
+  'Theater 4',
+];
+
+const EditEmergencyForm: React.FC<EditEmergencyFormProps> = ({ booking, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState<FormData>(booking);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +66,7 @@ export default function EditEmergencyForm({ booking, onSuccess, onCancel }: Edit
 
     try {
       await updateEmergencyBooking(booking.id, formData);
-      onSuccess();
+      onSubmit(formData);
     } catch (err: any) {
       setError(err.message || 'Failed to update emergency');
     } finally {
@@ -74,148 +89,149 @@ export default function EditEmergencyForm({ booking, onSuccess, onCancel }: Edit
         </h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div className="p-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-white">
-          <div className="space-y-6">
-            {/* Patient Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                name="patient_first_name"
-                label="Patient First Name"
-                value={formData.patient_first_name}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                name="patient_last_name"
-                label="Patient Last Name"
-                value={formData.patient_last_name}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                name="patient_id"
-                label="Patient ID"
-                value={formData.patient_id}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* Operation Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                name="doctor"
-                label="Doctor"
-                value={formData.doctor}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                name="theater"
-                label="Theater"
-                value={formData.theater}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                name="operation_type"
-                label="Operation Type"
-                value={formData.operation_type}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* Time Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                name="start_time"
-                label="Start Time"
-                value={formData.start_time}
-                onChange={handleChange}
-                type="datetime-local"
-                required
-              />
-              <Input
-                name="end_time"
-                label="End Time"
-                value={formData.end_time}
-                onChange={handleChange}
-                type="datetime-local"
-                required
-              />
-            </div>
-
-            {/* Emergency Reason */}
-            <div className="flex flex-col">
-              <label className="text-sm font-semibold text-indigo-900">Emergency Reason *</label>
-              <textarea
-                name="emergency_reason"
-                className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium resize-none h-36"
-                value={formData.emergency_reason}
-                onChange={handleChange}
-                required
-                placeholder="Describe the emergency situation and reason for immediate operation..."
-              />
-            </div>
-
-            {error && (
-              <div className="text-red-600 text-sm font-medium">
-                {error}
-              </div>
-            )}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-red-700">Patient First Name</label>
+            <input
+              type="text"
+              name="patient_first_name"
+              value={formData.patient_first_name}
+              onChange={handleChange}
+              className="input-field-emergency mt-1"
+              required
+            />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-red-700">Patient Last Name</label>
+            <input
+              type="text"
+              name="patient_last_name"
+              value={formData.patient_last_name}
+              onChange={handleChange}
+              className="input-field-emergency mt-1"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-red-700">Operation Type</label>
+            <select
+              name="operation_type"
+              value={formData.operation_type}
+              onChange={handleChange}
+              className="input-field-emergency mt-1"
+              required
+            >
+              <option value="">Select operation type</option>
+              {operationTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-red-700">Doctor</label>
+            <select
+              name="doctor"
+              value={formData.doctor}
+              onChange={handleChange}
+              className="input-field-emergency mt-1"
+              required
+            >
+              <option value="">Select doctor</option>
+              {doctors.map((doctor) => (
+                <option key={doctor} value={doctor}>
+                  {doctor}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-red-700">Start Time</label>
+            <input
+              type="datetime-local"
+              name="start_time"
+              value={formData.start_time.split('.')[0]}
+              onChange={handleChange}
+              className="input-field-emergency mt-1"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-red-700">End Time</label>
+            <input
+              type="datetime-local"
+              name="end_time"
+              value={formData.end_time.split('.')[0]}
+              onChange={handleChange}
+              className="input-field-emergency mt-1"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-red-700">Theater</label>
+            <select
+              name="theater"
+              value={formData.theater}
+              onChange={handleChange}
+              className="input-field-emergency mt-1"
+              required
+            >
+              <option value="">Select theater</option>
+              {theaters.map((theater) => (
+                <option key={theater} value={theater}>
+                  {theater}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+  <label className="block text-sm font-medium text-red-700">Emergency Reason</label>
+  <textarea
+    name="emergency_reason"
+    value={formData.emergency_reason}
+    onChange={handleChange}
+    className="input-field-emergency mt-1"
+    rows={3}
+    required
+  />
+</div>
+
         </div>
 
-        <div className="px-8 py-4 bg-gradient-to-r from-gray-50 to-indigo-50 flex justify-end gap-4">
+        <div className="flex justify-end space-x-4">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-900 transition-colors"
+            className="btn-emergency-secondary"
           >
             Cancel
           </button>
           <button
             type="submit"
+            className="btn-emergency"
             disabled={loading}
-            className="px-6 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Updating...' : 'Save Changes'}
+            {loading ? 'Updating...' : 'Update Emergency Booking'}
           </button>
         </div>
       </form>
-    </div>
-  );
-}
 
-// Helper input component
-function Input({
-  name,
-  label,
-  value,
-  onChange,
-  type = 'text',
-  required = false,
-}: {
-  name: string;
-  label: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <div className="flex flex-col">
-      <label className="text-sm font-semibold text-indigo-900">{label}</label>
-      <input
-        type={type}
-        name={name}
-        className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors text-gray-800 font-medium"
-        value={value}
-        onChange={onChange}
-        required={required}
-      />
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          {error}
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default EditEmergencyForm;
