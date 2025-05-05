@@ -115,3 +115,12 @@ export async function deleteUser(userId: number): Promise<void> {
     },
   });
 }
+
+export async function updateUserPassword(userId: number, newPassword: string): Promise<void> {
+  const token = localStorage.getItem('token');
+  await axios.patch(`${API_URL}/users/${userId}/password`, { newPassword }, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}

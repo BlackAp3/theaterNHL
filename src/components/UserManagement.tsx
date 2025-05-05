@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getUsers, createUser, updateUser, deleteUser } from '../lib/auth';
+import { getUsers, createUser, updateUser, deleteUser,updateUserPassword } from '../lib/auth';
 import { Users, UserPlus, Pencil, Trash2, Eye, EyeOff, Check, X, ArrowLeft } from 'lucide-react';
 import type { User } from '../types/user';
 
@@ -135,8 +135,9 @@ function UserManagement({ currentUser }: UserManagementProps) {
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
-
+  
     try {
+      // 🔁 First update non-password fields
       await updateUser(selectedUser.id, {
         email: formData.email,
         role: formData.role,
@@ -157,10 +158,17 @@ function UserManagement({ currentUser }: UserManagementProps) {
           actions: []
         }
       });
-
+  
+      // 🔐 Then conditionally update password if a new one was entered
+      if (formData.password && formData.password.length >= 6) {
+        await updateUserPassword(selectedUser.id, formData.password);
+      }
+  
+      // ♻️ Refresh user list
       const updatedUsers = await getUsers();
       setUsers(updatedUsers);
-
+  
+      // ✅ Reset UI state
       setShowCreateForm(false);
       setFormData({
         firstName: '',
@@ -178,6 +186,7 @@ function UserManagement({ currentUser }: UserManagementProps) {
       alert('Error updating user');
     }
   };
+  
 
   const toggleTabPermission = (tabId: TabId) => {
     setFormData(prev => {
