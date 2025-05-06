@@ -12,7 +12,6 @@ interface BookingData {
   surgeryDate: string;
   surgeryTime: string;
   surgeryAmPm: string;
-  durationHours: number;
   durationMinutes: number;
   status?: string;
   dateOfBirth: string;
@@ -122,6 +121,8 @@ export interface Theater {
 }
 
 export async function createBooking(data: BookingData) {
+  console.log("Start Time:", buildDateTime(data));
+  console.log("End Time:", buildEndTime(data));
   const token = localStorage.getItem('token');
   if (!token) {
     throw new Error('Authentication token not found');
@@ -172,25 +173,45 @@ export async function createBooking(data: BookingData) {
 }
 
 function buildDateTime(data: any): string {
-  console.log('buildDateTime input:', data);
-  const dateTime = `${data.surgeryDate}T${data.surgeryTime}:00`;
-  console.log('buildDateTime output:', dateTime);
-  return dateTime;
+  const [hours, minutes] = data.surgeryTime.split(':').map(Number);
+  const date = new Date(data.surgeryDate);
+  date.setHours(hours, minutes, 0, 0);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  const ss = '00';
+
+  return `${year}-${month}-${day}T${hh}:${mm}:${ss}`;
 }
 
+
+
 function buildEndTime(data: any): string {
-  console.log('buildEndTime input:', data);
-  const start = new Date(buildDateTime(data));
-  const tzOffset = new Date().getTimezoneOffset();
-  console.log('Timezone offset in minutes:', tzOffset);
-  start.setMinutes(start.getMinutes() - tzOffset);
-  console.log('Start time in buildEndTime:', start.toISOString());
-  const durationMs = (data.durationHours * 60 + data.durationMinutes) * 60 * 1000;
-  console.log('Duration in milliseconds:', durationMs);
-  const endTime = new Date(start.getTime() + durationMs);
-  console.log('End time in buildEndTime:', endTime.toISOString());
-  return endTime.toISOString().slice(0, 19);
+  const [hours, minutes] = data.surgeryTime.split(':').map(Number);
+  const date = new Date(data.surgeryDate);
+  date.setHours(hours, minutes, 0, 0); // Set start time
+
+  // ✅ Only use minutes — hours are no longer used
+  const durationInMinutes = data.durationMinutes;
+  date.setMinutes(date.getMinutes() + durationInMinutes); // Add minutes
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  const ss = '00';
+
+  return `${year}-${month}-${day}T${hh}:${mm}:${ss}`;
 }
+
+
+
+
+
 
 export async function getBookingById(id: string) {
   const token = localStorage.getItem('token');
