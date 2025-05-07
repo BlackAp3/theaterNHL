@@ -123,6 +123,9 @@ export interface Theater {
 export async function createBooking(data: BookingData) {
   console.log("Start Time:", buildDateTime(data));
   console.log("End Time:", buildEndTime(data));
+
+
+  
   const token = localStorage.getItem('token');
   if (!token) {
     throw new Error('Authentication token not found');
